@@ -1,0 +1,24 @@
+Changes
+LICENSE
+MANIFEST
+Makefile.PL
+README
+lib/Template/Flute.pm
+lib/Template/Flute/Increment.pm
+lib/Template/Flute/Iterator/Rose.pm
+lib/Template/Flute/Config.pm
+lib/Template/Flute/Specification/Scoped.pm
+lib/Template/Flute/Specification/XML.pm
+lib/Template/Flute/Specification.pm
+lib/Template/Flute/List.pm
+lib/Template/Flute/HTML/Table.pm
+lib/Template/Flute/Database/Rose.pm
+lib/Template/Flute/Form.pm
+lib/Template/Flute/I18N.pm
+lib/Template/Flute/Iterator.pm
+lib/Template/Flute/HTML.pm
+t/00-load.t
+t/manifest.t
+t/pod-coverage.t
+t/pod.t
+META.yml                                 Module meta-data (added by MakeMaker)

@@ -1,0 +1,217 @@
+NAME
+    Template::Flute - Modern HTML Engine
+
+VERSION
+    Version 0.0001
+
+SYNOPSIS
+        use Template::Flute;
+
+        my ($cart, $flute, %values);
+
+        $cart = [{...},{...}];
+        $values{cost} = ...
+
+        $flute = new Template::Flute(specification_file => 'cart.xml',
+                               template_file => 'cart.html',
+                               iterators => {cart => $cart},
+                               values => \%values,
+                               );
+
+        print $flute->process();
+
+DESCRIPTION
+    Template::Flute enables you to completely separate web design and
+    programming tasks for dynamic web applications.
+
+    Templates are plain HTML files without inline code or mini language,
+    thus making it easy to maintain them for web designers and to preview
+    them with a browser.
+
+    The CSS selectors in the template are tied to your data structures or
+    objects by a specification, which relieves the programmer from changing
+    his code for mere changes of class names.
+
+  Workflow
+    The easiest way to use Template::Flute is to pass all necessary
+    parameters to the constructor and call the process method to generate
+    the HTML.
+
+    You can also break it down in separate steps:
+
+    1. Parse specification
+        Parse specification based on your specification format (e.g with
+        Template::Flute::Specification::XML or
+        Template::Flute::Specification::Scoped.).
+
+            $xml_spec = new Template::Flute::Specification::XML;
+            $spec = $xml_spec->parse(q{<specification name="cart" description="Cart">
+                 <list name="cart" class="cartitem" iterator="cart">
+                 <param name="name" field="title"/>
+                 <param name="quantity"/>
+                 <param name="price"/>
+                 </list>
+                 <value name="cost"/>
+                 </specification>});
+
+    2. Parse template
+        Parse template with Template::Flute::HTML object.
+
+            $template = new Template::Flute::HTML;
+            $template->parse(q{<html>
+                <head>
+                <title>Cart Example</title>
+                </head>
+                <body>
+                <table class="cart">
+                <tr class="cartheader">
+                <th>Name</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                </tr>
+                <tr class="cartitem">
+                <td class="name">Sample Book</td>
+                <td><input class="quantity" name="quantity" size="3" value="10"></td>
+                <td class="price">$1</td>
+                </tr>
+                <tr class="cartheader"><th colspan="2"></th><th>Total</th>
+                </tr>
+                <tr>
+                <td colspan="2"></td><td class="cost">$10</td>
+                </tr>
+                </table>
+                </body></html>},
+                $spec);
+
+    3. Produce HTML output
+            $zoom = new Template::Zoom(template => $template,
+                                       iterators => {cart => $cart},
+                                       values => {cost => '84.94'});
+            $zoom->process();
+
+CONSTRUCTOR
+  new
+    Create a Template::Flute object with the following parameters:
+
+    specification_file
+        Specification file name.
+
+    specification_parser
+        Select specification parser. This can be either the full class name
+        like MyApp::Specification::Parser or the last part for classes
+        residing in the Template::Flute::Specification namespace.
+
+    template_file
+        HTML template file.
+
+    database
+        Template::Flute::Database::Rose object.
+
+    filters
+        Hash reference of filter functions.
+
+    i18n
+        Template::Flute::I18N object.
+
+    values
+        Hash reference of values to be used by the process method.
+
+METHODS
+  process [HASHREF]
+    Processes HTML template and returns HTML output.
+
+  filter FILTER VALUE
+    Runs the filter named FILTER on VALUE and returns the result.
+
+  value NAME
+    Returns the value for NAME.
+
+  set_values HASHREF
+    Sets hash reference of values to be used by the process method. Same as
+    passing the hash reference as values argument to the constructor.
+
+  template
+    Returns HTML template object.
+
+SPECIFICATION
+    The specification ties the elements in the HTML template to the data
+    (variables, lists, forms) which is added to the template.
+
+    The default format for the specification is XML implemented by the
+    Template::Flute::Specification::XML module. You can use the
+    Config::Scoped format implemented by
+    Template::Flute::Specification::Scoped module or write your own
+    specification parser class.
+
+    Possible elements in the specification are:
+
+    container
+        This container is only shown in the output if the value
+        billing_address is set:
+
+          <container name="billing" value="billing_address" class="billingWrapper">
+          </container>
+
+    list
+    param
+    value
+    input
+    filter
+    sort
+    i18n
+
+ITERATORS
+    Template::Flute uses iterators to retrieve list elements and insert them
+    into the document tree. This abstraction relieves us from worrying about
+    where the data actually comes from. We basically just need an array of
+    hash references and an iterator class with a next and a count method.
+    For your convenience you can create an iterator from
+    Template::Flute::Iterator class very easily.
+
+LIST
+    Template::Flute::List
+
+FORMS
+    Template::Flute::Form
+
+AUTHOR
+    Stefan Hornburg (Racke), <racke@linuxia.de>
+
+BUGS
+    Please report any bugs or feature requests to `bug-template-flute at
+    rt.cpan.org', or through the web interface at
+    http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Template-Flute.
+
+SUPPORT
+    You can find documentation for this module with the perldoc command.
+
+        perldoc Template::Flute
+
+    You can also look for information at:
+
+    * RT: CPAN's request tracker
+        http://rt.cpan.org/NoAuth/Bugs.html?Dist=Template-Flute
+
+    * AnnoCPAN: Annotated CPAN documentation
+        http://annocpan.org/dist/Template-Flute
+
+    * CPAN Ratings
+        http://cpanratings.perl.org/d/Template-Flute
+
+    * Search CPAN
+        http://search.cpan.org/dist/Template-Flute/
+
+HISTORY
+    Template::Flute was initially named Template::Zoom. I renamed the module
+    because of a request from Matt S. Trout, author of the HTML::Zoom
+    module.
+
+LICENSE AND COPYRIGHT
+    Copyright 2010-2011 Stefan Hornburg (Racke) <racke@linuxia.de>.
+
+    This program is free software; you can redistribute it and/or modify it
+    under the terms of either: the GNU General Public License as published
+    by the Free Software Foundation; or the Artistic License.
+
+    See http://dev.perl.org/licenses/ for more information.
+
