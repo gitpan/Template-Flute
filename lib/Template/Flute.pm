@@ -6,6 +6,7 @@ use warnings;
 use Template::Flute::Utils;
 use Template::Flute::Specification::XML;
 use Template::Flute::HTML;
+use Template::Flute::Iterator;
 
 =head1 NAME
 
@@ -13,11 +14,11 @@ Template::Flute - Modern HTML Engine
 
 =head1 VERSION
 
-Version 0.0002
+Version 0.0003
 
 =cut
 
-our $VERSION = '0.0002';
+our $VERSION = '0.0003';
 
 =head1 SYNOPSIS
 
@@ -105,10 +106,10 @@ Parse template with L<Template::Flute::HTML> object.
 
 =item 3. Produce HTML output
 
-    $zoom = new Template::Zoom(template => $template,
+    $flute = new Template::Flute(template => $template,
                                iterators => {cart => $cart},
                                values => {cost => '84.94'});
-    $zoom->process();
+    $flute->process();
 
 =back
 	
@@ -149,6 +150,10 @@ L<Template::Flute::I18N> object.
 =item values
 
 Hash reference of values to be used by the process method.
+
+=item auto_iterators
+
+Builds iterators automatically from values.
 
 =back
 
@@ -269,6 +274,8 @@ sub process {
 	
 	# determine database queries
 	for my $list ($self->{template}->lists()) {
+		my $name;
+		
 		# check for (required) input
 		unless ($list->input($params)) {
 			die "Input missing for " . $list->name . "\n";
@@ -283,6 +290,16 @@ sub process {
 				else {
 					die "$0: List " . $list->name . " without iterator and database query.\n";
 				}
+			}
+			elsif ($self->{auto_iterators} &&
+				   ($name = $list->iterator('name'))) {
+				if (ref($self->{values}->{$name}) eq 'ARRAY') {
+					$iter = Template::Flute::Iterator->new($self->{values}->{$name});
+				}
+				else {
+					$iter = Template::Flute::Iterator->new([]);
+				}
+				$list->set_iterator($iter);
 			}
 			else {
 				die "$0: List " . $list->name . " without iterator and database object.\n";
@@ -483,22 +500,30 @@ sub _replace_values {
 	for my $value ($self->{template}->values()) {
 		@elts = @{$value->{elts}};
 
-		if (exists $value->{op} && $value->{op} eq 'toggle') {
-			my $raw;
+		if (exists $value->{op}) {
+			if ($value->{op} eq 'toggle') {
+				my $raw;
 
-			($raw, $rep_str) = $self->value($value);
+				($raw, $rep_str) = $self->value($value);
 
-			if (exists $value->{args} && $value->{args} eq 'static') {
-				if ($rep_str) {
-					# preserve static text
+				if (exists $value->{args} && $value->{args} eq 'static') {
+					if ($rep_str) {
+						# preserve static text
+						next;
+					}
+				}
+			
+				unless ($raw) {
+					# remove corresponding HTML elements from tree
+					for my $elt (@elts) {
+						$elt->cut();
+					}
 					next;
 				}
 			}
-			
-			unless ($raw) {
-				# remove corresponding HTML elements from tree
+			elsif ($value->{op} eq 'hook') {
 				for my $elt (@elts) {
-					$elt->cut();
+					Template::Flute::HTML::hook_html($elt, $self->value($value));
 				}
 				next;
 			}
@@ -537,6 +562,18 @@ sub template {
 	return $self->{template};
 }
 
+=head2 specification
+
+Returns specification object.
+
+=cut
+
+sub specification {
+	my $self = shift;
+
+	return $self->{specification};
+}
+
 =head1 SPECIFICATION
 
 The specification ties the elements in the HTML template to the data
@@ -563,6 +600,25 @@ This container is only shown in the output if the value billing_address is set:
 =item param
 
 =item value
+
+Value elements are replaced with a single value present in the values hash
+passed to the constructor of this class or later set with the
+L<set_values|/set_values_HASHREF> method.
+
+The following operations are supported for value elements:
+
+=over 4
+
+=item hook
+
+Insert HTML residing in value as subtree of the corresponding HTML element.
+HTML will be parsed with L<XML::Twig>.
+
+=item toggle
+
+Only shows corresponding HTML element if value is set.
+
+=back
 
 =item input
 

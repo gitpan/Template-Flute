@@ -25,6 +25,10 @@ sub new {
 	
 	$self = {sob => $sob, static => $static, valid_input => undef};
 
+	if (exists $sob->{iterator}) {
+		$self->{iterator} = {name => $sob->{iterator}};
+	}
+	
 	bless $self;
 	
 	if ($spec && $name) {
@@ -114,8 +118,6 @@ sub paging_add {
 	$self->{paging} = $paging;
 }
 
-=head1 METHODS
-
 =head2 name
 
 Returns name of the list.
@@ -128,28 +130,33 @@ sub name {
 	return $self->{sob}->{name};
 }
 
-=head2 iterator
+=head2 iterator [ARG]
 
-Returns iterator for the list.
+Returns list iterator object when called without ARG.
+Returns list iterator name when called with ARG 'name'.
 
 =cut
 	
 sub iterator {
-	my ($self) = @_;
+	my ($self, $arg) = @_;
 
-	return $self->{iterator};
+	if (defined $arg && $arg eq 'name') {
+		return $self->{iterator}->{name};
+	}
+	
+	return $self->{iterator}->{object};
 }
 
-=head2 set_iterator NAME
+=head2 set_iterator ITERATOR
 
-Sets list iterator to NAME.
+Sets list iterator object to ITERATOR.
 
 =cut
 
 sub set_iterator {
 	my ($self, $iterator) = @_;
 	
-	$self->{iterator} = $iterator;
+	$self->{iterator}->{object} = $iterator;
 }
 
 =head2 set_static_class CLASS
@@ -346,7 +353,7 @@ sub query {
 	}
 }
 
-=head3 set_limit TYPE LIMIT
+=head2 set_limit TYPE LIMIT
 
 Set list limit for type TYPE to LIMIT.
 
@@ -359,7 +366,7 @@ sub set_limit {
 	$self->{limits}->{$type} = $limit;
 }
 
-=head3 set_filter NAME
+=head2 set_filter NAME
 
 Set global filter for list to NAME.
 
@@ -371,7 +378,7 @@ sub set_filter {
 	$self->{filter} = $name;
 }
 
-=head3 filter FLUTE ROW
+=head2 filter FLUTE ROW
 
 Run row filter on ROW if applicable.
 
@@ -399,7 +406,7 @@ sub filter {
 	return $row;
 }
 
-=head3 increment
+=head2 increment
 
 Increment all increments of the list.
 
