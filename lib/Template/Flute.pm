@@ -14,11 +14,11 @@ Template::Flute - Modern HTML Engine
 
 =head1 VERSION
 
-Version 0.0003
+Version 0.0004
 
 =cut
 
-our $VERSION = '0.0003';
+our $VERSION = '0.0004';
 
 =head1 SYNOPSIS
 
@@ -242,7 +242,10 @@ sub _bootstrap {
 
 =head2 process [HASHREF]
 
-Processes HTML template and returns HTML output.
+Processes HTML template, manipulates the HTML tree based on the
+specification, values and iterators.
+
+Returns HTML output.
 
 =cut
 
@@ -282,27 +285,35 @@ sub process {
 		}
 
 		unless ($iter = $list->iterator()) {
-			if ($self->{database}) {
+			if ($name = $list->iterator('name')) {
+				# resolve iterator name to object
+				if ($iter = $self->{specification}->iterator($name)) {
+					$list->set_iterator($iter);
+				}
+				elsif ($self->{auto_iterators}) {
+					if (ref($self->{values}->{$name}) eq 'ARRAY') {
+						$iter = Template::Flute::Iterator->new($self->{values}->{$name});
+					}
+					else {
+						$iter = Template::Flute::Iterator->new([]);
+					}
+					$list->set_iterator($iter);
+				}
+				else {
+					die "Missing iterator object for list " . $list->name . " and iterator name $name";
+				}
+			}
+			elsif ($self->{database}) {
 				if ($query = $list->query()) {
 					$iter = $self->{database}->build($query);
 					$iter->run();
 				}
 				else {
-					die "$0: List " . $list->name . " without iterator and database query.\n";
+					die "List " . $list->name . " without iterator and database query.\n";
 				}
-			}
-			elsif ($self->{auto_iterators} &&
-				   ($name = $list->iterator('name'))) {
-				if (ref($self->{values}->{$name}) eq 'ARRAY') {
-					$iter = Template::Flute::Iterator->new($self->{values}->{$name});
-				}
-				else {
-					$iter = Template::Flute::Iterator->new([]);
-				}
-				$list->set_iterator($iter);
 			}
 			else {
-				die "$0: List " . $list->name . " without iterator and database object.\n";
+				die "List " . $list->name . " without iterator and database object.\n";
 			}
 		}
 		
@@ -396,6 +407,22 @@ sub _replace_within_elts {
 			$elt->set_text($rep_str);
 		}
 	}
+}
+
+=head2 process_template
+
+Processes HTML template and returns L<Template::Flute::HTML> object.
+
+=cut
+
+sub process_template {
+	my ($self) = @_;
+	
+	unless ($self->{template}) {
+		$self->_bootstrap();
+	}
+
+	return $self->{template};
 }
 
 sub _replace_record {

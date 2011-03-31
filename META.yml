@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Template-Flute
-version:            0.0003
+version:            0.0004
 abstract:           Modern HTML Engine
 author:
     - Stefan Hornburg (Racke) <racke@linuxia.de>
