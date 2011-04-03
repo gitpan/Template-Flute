@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Template-Flute
-version:            0.0005
+version:            0.0006
 abstract:           Modern HTML Engine
 author:
     - Stefan Hornburg (Racke) <racke@linuxia.de>
@@ -11,8 +11,9 @@ configure_requires:
 build_requires:
     ExtUtils::MakeMaker:  0
 requires:
-    Test::More:  0
-    XML::Twig:   0
+    HTML::TreeBuilder:  0
+    Test::More:         0
+    XML::Twig:          0
 no_index:
     directory:
         - t
