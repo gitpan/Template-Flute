@@ -30,7 +30,16 @@ t/01-helloworld.t
 t/02-configscoped.t
 t/03-xml.t
 t/04-derive-filename.t
+t/05-intro.t
+t/06-from-string.t
+t/07-from-file.t
+t/files/test.html
+t/files/test.xml
+t/i18n/01-simple.t
+t/forms/05-textarea.t
 t/iterators/00-load.t
 t/iterators/01-simple.t
 t/iterators/20-json.t
+t/targets/01-value.t
+t/targets/02-param.t
 META.yml                                 Module meta-data (added by MakeMaker)

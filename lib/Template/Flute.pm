@@ -10,15 +10,15 @@ use Template::Flute::Iterator;
 
 =head1 NAME
 
-Template::Flute - Modern HTML Engine
+Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0006
+Version 0.0007
 
 =cut
 
-our $VERSION = '0.0006';
+our $VERSION = '0.0007';
 
 =head1 SYNOPSIS
 
@@ -42,13 +42,48 @@ our $VERSION = '0.0006';
 Template::Flute enables you to completely separate web design and programming
 tasks for dynamic web applications.
 
-Templates are plain HTML files without inline code or mini language, thus
-making it easy to maintain them for web designers and to preview them with
-a browser.
+Templates are designed to be designer-friendly; there's no inline code or mini
+templating language for your designers to learn - instead, standard HTML and CSS
+classes are used, leading to HTML that can easily be understood and edited by
+WYSIWYG editors and hand-coding designers alike.
 
-The CSS selectors in the template are tied to your data structures or
-objects by a specification, which relieves the programmer from changing
-his code for mere changes of class names.
+An example is easier than a wordy description:
+
+Given the following template snippet:
+
+    <div class="customer_name">Mr A Test</div>
+    <div class="customer_email">someone@example.com</div>
+
+and the following specification:
+
+   <specification name="example" description="Example">
+        <value name="customer_name" />
+        <value name="email" field="customer_email" />
+    </specification>
+
+Processing the above as follows:
+
+    $flute = Template::Flute->new(
+        template_file      => 'template.html',
+        specification_file => 'spec.xml',
+    );
+    $flute->set_values({
+        customer_name => 'Bob McTest',
+        email => 'bob@example.com',
+    });;
+    print $flute->process;
+
+The resulting output would be:
+
+    <div class="customer_name">Bob McTest</div>
+    <div class="email">bob@example.com</div>
+
+
+In other words, rather than including a templating language within your
+templates which your designers must master and which could interfere with
+previews in WYSWYG tools, CSS selectors in the template are tied to your
+data structures or objects by a specification provided by the programmer.
+
 
 =head2 Workflow
 
@@ -131,9 +166,17 @@ Select specification parser. This can be either the full class name
 like L<MyApp::Specification::Parser> or the last part for classes residing
 in the Template::Flute::Specification namespace.
 
+=item specification
+
+Specification object or specification as string.
+
 =item template_file
 
 HTML template file.
+
+=item template
+
+L<Template::Flute::HTML> object or template as string.
 
 =item database
 
@@ -167,6 +210,21 @@ sub new {
 	$class = shift;
 
 	$self = {@_};
+
+	bless $self, $class;
+	
+	if (exists $self->{specification}
+		&& ! ref($self->{specification})) {
+		# specification passed as string
+		$self->_bootstrap_specification('string', delete $self->{specification});
+	}
+
+	if (exists $self->{template}
+		&& ! ref($self->{template})
+		&& ref($self->{specification})) {
+		$self->_bootstrap_template('string', delete $self->{template});
+	}
+	
 	bless $self;
 }
 
@@ -183,59 +241,85 @@ sub _bootstrap {
 				die "Missing Template::Flute specification for template $self->{template_file}\n";
 			}
 		}
+
+		$self->_bootstrap_specification(file => $self->{specification_file});
+	}
+
+	$self->_bootstrap_template(file => $self->{template_file});
+}
+
+sub _bootstrap_specification {
+	my ($self, $source, $specification) = @_;
+	my ($parser_name, $parser_spec, $spec_file);
+	
+	if ($parser_name = $self->{specification_parser}) {
+		# load parser class
+		my $class;
 			
-		if ($parser_name = $self->{specification_parser}) {
-			# load parser class
-			my $class;
-			
-			if ($parser_name =~ /::/) {
-				$class = $parser_name;
-			}
-			else {
-				$class = "Template::Flute::Specification::$parser_name";
-			}
-
-			eval "require $class";
-			if ($@) {
-				die "Failed to load class $class as specification parser: $@\n";
-			}
-
-			eval {
-				$parser_spec = $class->new();
-			};
-
-			if ($@) {
-				die "Failed to instantiate class $class as specification parser: $@\n";
-			}
+		if ($parser_name =~ /::/) {
+			$class = $parser_name;
+		} else {
+			$class = "Template::Flute::Specification::$parser_name";
 		}
-		else {
-			$parser_spec = new Template::Flute::Specification::XML;
+
+		eval "require $class";
+		if ($@) {
+			die "Failed to load class $class as specification parser: $@\n";
 		}
-		
-		if ($spec_file = $self->{specification_file}) {
-			unless ($self->{specification} = $parser_spec->parse_file($spec_file)) {
-				die "$0: error parsing $spec_file: " . $parser_spec->error() . "\n";
-			}
+
+		eval {
+			$parser_spec = $class->new();
+		};
+
+		if ($@) {
+			die "Failed to instantiate class $class as specification parser: $@\n";
 		}
-		else {
-			die "$0: Missing Template::Flute specification, template: $self->{template_file}.\n";
+	} else {
+		$parser_spec = new Template::Flute::Specification::XML;
+	}
+	
+	if ($source eq 'file') {
+		unless ($self->{specification} = $parser_spec->parse_file($specification)) {
+			die "$0: error parsing $specification: " . $parser_spec->error() . "\n";
+		}
+	}
+	else {
+		# text
+		unless ($self->{specification} = $parser_spec->parse($specification)) {
+			die "$0: error parsing $spec_file: " . $parser_spec->error() . "\n";
 		}
 	}
 
+	
 	my ($name, $iter);
 	
 	while (($name, $iter) = each %{$self->{iterators}}) {
 		$self->{specification}->set_iterator($name, $iter);
 	}
 	
-	if ($template_file = $self->{template_file}) {
-		$template_object = new Template::Flute::HTML;
-		$template_object->parse_file($template_file, $self->{specification});
+	return $self->{specification};
+}
+
+sub _bootstrap_template {
+	my ($self, $source, $template) = @_;
+	my ($template_object);
+
+	$template_object = new Template::Flute::HTML;
+	
+	if ($source eq 'file') {
+		$template_object->parse_file($template, $self->{specification});
 		$self->{template} = $template_object;
 	}
-	else {
+	elsif ($source eq 'string') {
+		$template_object->parse($template, $self->{specification});
+		$self->{template} = $template_object;
+	}
+
+	unless ($self->{template}) {
 		die "$0: Missing Template::Flute template.\n";
 	}
+
+	return $self->{template};
 }
 
 =head1 METHODS
@@ -492,18 +576,21 @@ Returns the value for NAME.
 
 sub value {
 	my ($self, $value) = @_;
-	my ($raw_value, $rep_str);
+	my ($raw_value, $ref_value, $rep_str);
+
+	$ref_value = $self->{values};
 	
 	if ($self->{scopes}) {
 		if (exists $value->{scope}) {
-			$raw_value = $self->{values}->{$value->{scope}}->{$value->{name}};
-		}
-		else {
-			$raw_value = $self->{values}->{$value->{name}};
+			$ref_value = $self->{values}->{$value->{scope}};
 		}
 	}
+
+	if (exists $value->{field}) {
+		$raw_value = $ref_value->{$value->{field}};
+	}
 	else {
-		$raw_value = $self->{values}->{$value->{name}};
+		$raw_value = $ref_value->{$value->{name}};
 	}
 
 	if ($value->{filter}) {
@@ -710,6 +797,15 @@ L<http://cpanratings.perl.org/d/Template-Flute>
 L<http://search.cpan.org/dist/Template-Flute/>
 
 =back
+
+=head1 ACKNOWLEDGEMENTS
+
+Thanks to David Previous (bigpresh) for writing a much clearer introduction for
+Template::Flute.
+
+Thanks to Ton Verhagen for being a big supporter of my projects in all aspects.
+
+Thanks to Terrence Brannon for spotting a documentation mix-up.
 
 =head1 HISTORY
 
