@@ -48,7 +48,15 @@ Add fields from FIELDS to form.
 	
 sub fields_add {
 	my ($self, $fields) = @_;
+	my (%field_iters);
 
+	for my $field (@$fields) {
+		if ($field->{iterator}) {
+			$field_iters{$field->{iterator}} = $field->{name};
+		}
+	}
+
+	$self->{iterators} = \%field_iters;
 	$self->{fields} = $fields || [];
 }
 
@@ -163,6 +171,18 @@ sub input {
 	return 1;
 }
 
+=head2 iterators
+
+Returns names of all iterators used by the fields for this form.
+
+=cut
+
+sub iterators {
+	my ($self) = @_;
+
+	return keys(%{$self->{iterators}});
+}
+
 =head2 action
 
 Returns current form action.
@@ -210,28 +230,36 @@ Fills form with parameters from hash reference PARAMS.
 # fill - fills form fields
 sub fill {
 	my ($self, $href) = @_;
-	my ($f, @elts, $zref, $type);
+	my ($f, @elts, $value, $zref, $type);
 
 	for my $f (@{$self->fields()}) {
 		@elts = @{$f->{elts}};
 
+		if (exists $href->{$f->{name}}
+			&& defined $href->{$f->{name}}) {
+			$value = $href->{$f->{name}};
+		}
+		else {
+			$value = '';
+		}
+		
 		if (@elts == 1) {
 			$zref = $elts[0]->{"flute_$f->{name}"};
 			$type = $elts[0]->att('type') || '';
 			
 			if ($zref->{rep_sub}) {
 				# call subroutine to handle this element
-				$zref->{rep_sub}->($elts[0], $href->{$f->{name}});
+				$zref->{rep_sub}->($elts[0], $value);
 			}
 			elsif ($elts[0]->gi() eq 'textarea') {
-				$elts[0]->set_text($href->{$f->{name}});
+				$elts[0]->set_text($value);
 			}
 			elsif ($elts[0]->gi() eq 'input') {
 				if ($type eq 'submit') {
 					# don't override button text
 				}
 				elsif ($type eq 'checkbox') {
-					if ($href->{$f->{name}} eq $elts[0]->att('value')) {
+					if ($value eq $elts[0]->att('value')) {
 						$elts[0]->set_att('checked', 'checked');
 					}
 					else {
@@ -239,7 +267,7 @@ sub fill {
 					}
 				}
 				else {
-					$elts[0]->set_att('value', $href->{$f->{name}});
+					$elts[0]->set_att('value', $value);
 				}
 			}
 		}
@@ -248,7 +276,7 @@ sub fill {
 			for my $elt (@elts) {
 				if ($elt->gi() eq 'input') {
 					if ($elt->att('type') eq 'radio') {
-						if ($href->{$f->{name}} eq $elt->att('value')) {
+						if ($value eq $elt->att('value')) {
 							$elt->set_att('checked', 'checked');
 						}
 					}

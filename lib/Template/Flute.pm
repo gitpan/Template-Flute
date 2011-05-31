@@ -14,11 +14,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0007
+Version 0.0008
 
 =cut
 
-our $VERSION = '0.0007';
+our $VERSION = '0.0008';
 
 =head1 SYNOPSIS
 
@@ -446,6 +446,19 @@ sub process {
 		}
 		
 		$lel->cut();
+
+		if ($self->{auto_iterators}) {
+			for my $iter_name ($form->iterators()) {
+				if (ref($self->{values}->{$iter_name}) eq 'ARRAY') {
+					$iter = Template::Flute::Iterator->new($self->{values}->{$iter_name});
+				}
+				else {
+					$iter = Template::Flute::Iterator->new([]);
+				}
+
+				$self->{specification}->set_iterator($iter_name, $iter);
+			}
+		}
 		
 		if (keys(%{$form->inputs()}) && $form->input()) {
 			$iter = $dbobj->build($form->query());
@@ -532,6 +545,10 @@ sub _replace_record {
 			$rep_str = $self->filter($param->{filter}, $rep_str);
 		}
 
+		unless (defined $rep_str) {
+			$rep_str = '';
+		}
+		
 		$self->_replace_within_elts($param, $rep_str);	
 	}
 			
