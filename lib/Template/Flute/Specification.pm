@@ -37,7 +37,7 @@ sub new {
 	my (%params);
 
 	$class = shift;
-	%params = @_;
+	%params = (encoding => 'utf8', @_);
 
 	$self = \%params;
 
@@ -51,6 +51,39 @@ sub new {
 }
 
 =head1 METHODS
+
+=head2 name NAME
+
+Set or get the name of the specification.
+
+=cut
+
+sub name {
+	my $self = shift;
+
+	if (scalar @_ > 0) {
+		$self->{name} = shift;
+	}
+
+	return $self->{name};
+}
+
+=head2 encoding ENCODING
+
+Set or get the encoding of the HTML template
+which is parsed according to this specification.
+
+=cut
+	
+sub encoding {
+	my $self = shift;
+
+	if (scalar @_ > 0) {
+		$self->{encoding} = shift;
+	}
+
+	return $self->{encoding};
+}
 
 =head2 container_add CONTAINER
 
@@ -113,6 +146,9 @@ sub list_add {
 	# loop through params for this list
 	for my $param (@{$new_listref->{param}}) {
 		$class = $param->{class} || $param->{name};
+		unless ($class) {
+			die "Neither class nor name for param within list $list_name.\n";
+		}
 		push @{$self->{classes}->{$class}}, {%{$param}, type => 'param', list => $list_name};
 	}
 

@@ -14,11 +14,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0008
+Version 0.0009
 
 =cut
 
-our $VERSION = '0.0008';
+our $VERSION = '0.0009';
 
 =head1 SYNOPSIS
 
@@ -190,6 +190,10 @@ Hash reference of filter functions.
 
 L<Template::Flute::I18N> object.
 
+=item iterators
+
+Hash references of iterators.
+
 =item values
 
 Hash reference of values to be used by the process method.
@@ -209,7 +213,7 @@ sub new {
 
 	$class = shift;
 
-	$self = {@_};
+	$self = {iterators => {}, @_};
 
 	bless $self, $class;
 	
@@ -225,7 +229,7 @@ sub new {
 		$self->_bootstrap_template('string', delete $self->{template});
 	}
 	
-	bless $self;
+	return $self;
 }
 
 sub _bootstrap {
@@ -373,6 +377,10 @@ sub process {
 				# resolve iterator name to object
 				if ($iter = $self->{specification}->iterator($name)) {
 					$list->set_iterator($iter);
+				}
+				elsif (exists $self->{iterators}->{$name}) {
+					# iterator name from method parameters
+					$iter = $list->set_iterator($self->{iterators}->{$name});
 				}
 				elsif ($self->{auto_iterators}) {
 					if (ref($self->{values}->{$name}) eq 'ARRAY') {
