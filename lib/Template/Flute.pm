@@ -14,11 +14,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0009
+Version 0.0010
 
 =cut
 
-our $VERSION = '0.0009';
+our $VERSION = '0.0010';
 
 =head1 SYNOPSIS
 
@@ -611,7 +611,25 @@ sub value {
 		}
 	}
 
-	if (exists $value->{field}) {
+	if (exists $value->{include}) {
+		my (%args, $include_file);
+
+		if ($self->{template_file}) {
+			$include_file = Template::Flute::Utils::derive_filename
+				($self->{template_file}, $value->{include}, 1,
+				 pass_absolute => 1);
+		}
+		else {
+			$include_file = $value->{include};
+		}
+		
+		# process template and include it
+		%args = (template_file => $include_file,
+				 values => $self->{values});
+		
+		$raw_value = Template::Flute->new(%args)->process();
+	}
+	elsif (exists $value->{field}) {
 		$raw_value = $ref_value->{$value->{field}};
 	}
 	else {
@@ -729,9 +747,16 @@ Possible elements in the specification are:
 
 =item container
 
-This container is only shown in the output if the value billing_address is set:
+The first container is only shown in the output if the value C<billing_address> is set:
 
   <container name="billing" value="billing_address" class="billingWrapper">
+  </container>
+
+The second container is shown if the value C<warnings> or the value C<errors> is set:
+
+  <container name="account_errors" value="warnings|errors" class="infobox">
+  <value name="warnings"/>
+  <value name="errors"/>
   </container>
 
 =item list
@@ -756,6 +781,17 @@ HTML will be parsed with L<XML::Twig>.
 =item toggle
 
 Only shows corresponding HTML element if value is set.
+
+=back
+
+Other attributes for value elements are:
+
+=over 4
+
+=item include
+
+Processes the template file named in this attribute. This implies
+the hook operation.
 
 =back
 
@@ -785,6 +821,19 @@ L<Template::Flute::List>
 =head1 FORMS
 
 L<Template::Flute::Form>
+
+=head1 INCLUDES
+
+Files, especially components for web pages can be processed and included
+through value elements with the include attribute:
+
+    <value name="sidebar" include="component.html"/>
+
+The result replaces the inner HTML of the following C<div> tag:
+
+    <div class="sidebar">
+        Sample content
+    </div>
 
 =head1 AUTHOR
 

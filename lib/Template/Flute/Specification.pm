@@ -226,6 +226,11 @@ sub value_add {
 	
 	$value_name = $new_valueref->{value}->{name};
 
+	if (exists $new_valueref->{value}->{include}) {
+		# include implies hooking resulting value
+		$new_valueref->{value}->{op} = 'hook';
+	}
+	
 	$valueref = $self->{values}->{$new_valueref->{value}->{name}} = {};
 	
 	if ($id = $new_valueref->{value}->{id}) {
@@ -250,9 +255,10 @@ sub i18n_add {
 	my ($self, $new_i18nref) = @_;
 	my ($i18nref, $i18n_name, $id, $class);
 
-	$i18n_name = $new_i18nref->{value}->{name};
+	$i18n_name = $new_i18nref->{value}->{name}
+	  || $new_i18nref->{value}->{class};
 	
-	$i18nref = $self->{i18n}->{$new_i18nref->{value}->{name}} = {};
+	$i18nref = $self->{i18n}->{$i18n_name} = {};
 	
 	if ($id = $new_i18nref->{value}->{id}) {
 		$self->{ids}->{$id} = {%{$new_i18nref->{value}}, type => 'i18n'};
@@ -260,7 +266,7 @@ sub i18n_add {
 	else {
 		$class = $new_i18nref->{value}->{class} || $i18n_name;
 
-		push @{$self->{classes}->{$class}}, [{%{$new_i18nref->{value}}, type => 'i18n'}];
+		push @{$self->{classes}->{$class}}, {%{$new_i18nref->{value}}, type => 'i18n'};
 	}
 	
 	return $i18nref;
