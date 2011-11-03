@@ -35,6 +35,14 @@ Evaluates to value C<foo> or value C<bar>.
 
 Evaluates to value C<foo> and value C<bar>.
 
+=item foo|bar
+
+Evaluates to value C<foo> or reverse of value C<bar>.
+
+=item foo&bar
+
+Evaluates to value C<foo> and reverse of value C<bar>.
+
 =back
     
 =cut
@@ -53,9 +61,11 @@ sub new {
 
 var : /\w[a-z0-9_]*/
 
-andor : var /[|&]/ var
+andor : term /[|&]/ term
 
 notvar: '!' var
+
+term: var | notvar
 
 expression : andor | notvar
 });
@@ -96,6 +106,9 @@ sub _walk {
     my ($self, $tree) = @_;
 
     if ($tree->[0] eq 'expression') {
+	return $self->_walk($tree->[1]);
+    }
+    elsif ($tree->[0] eq 'term') {
 	return $self->_walk($tree->[1]);
     }
     elsif ($tree->[0] eq 'andor') {

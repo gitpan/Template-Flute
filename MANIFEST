@@ -8,6 +8,12 @@ lib/Template/Flute.pm
 lib/Template/Flute/Increment.pm
 lib/Template/Flute/Iterator/Rose.pm
 lib/Template/Flute/Config.pm
+lib/Template/Flute/Filter.pm
+lib/Template/Flute/Filter/Currency.pm
+lib/Template/Flute/Filter/Date.pm
+lib/Template/Flute/Filter/Eol.pm
+lib/Template/Flute/Filter/NobreakSingle.pm
+lib/Template/Flute/Filter/Upper.pm
 lib/Template/Flute/Specification/Scoped.pm
 lib/Template/Flute/Specification/XML.pm
 lib/Template/Flute/Specification.pm
@@ -38,6 +44,7 @@ t/08-utf8-html.t
 t/09-iso-html.t
 t/10-include.t
 t/12-container.t
+t/13-separator.t
 t/files/component.html
 t/files/component.xml
 t/files/iso.xml
@@ -46,7 +53,14 @@ t/files/test.html
 t/files/test.xml
 t/files/utf8.xml
 t/files/utf8.html
+t/filters/currency.t
+t/filters/date.t
+t/filters/eol.t
+t/filters/nobreak_single.t
+t/filters/subs.t
+t/filters/upper.t
 t/i18n/01-simple.t
+t/forms/01-name.t
 t/forms/05-textarea.t
 t/forms/06-select.t
 t/iterators/00-load.t

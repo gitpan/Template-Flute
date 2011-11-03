@@ -14,11 +14,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0011
+Version 0.0020
 
 =cut
 
-our $VERSION = '0.0011';
+our $VERSION = '0.0020';
 
 =head1 SYNOPSIS
 
@@ -209,11 +209,19 @@ Builds iterators automatically from values.
 # Constructor
 
 sub new {
-	my ($class, $self);
+	my ($class, $self, $filter_subs, $filter_opts, $filter_class);
 
 	$class = shift;
 
-	$self = {iterators => {}, @_};
+	$filter_subs = {};
+	$filter_opts = {};
+	$filter_class = {};
+
+	$self = {iterators => {}, @_, 
+		 _filter_subs => $filter_subs,
+		 _filter_opts => $filter_opts,
+		 _filter_class => $filter_class,
+	};
 
 	bless $self, $class;
 	
@@ -228,7 +236,27 @@ sub new {
 		&& ref($self->{specification})) {
 		$self->_bootstrap_template('string', delete $self->{template});
 	}
-	
+
+	if (exists $self->{filters}) {
+	    my ($name, $value);
+
+	    while (($name, $value) = each %{$self->{filters}}) {
+		if (ref($value) eq 'CODE') {
+		    # passing subroutine
+		    $filter_subs->{$name} = $value;
+		    next;
+		}
+		if (exists($value->{class})) {
+		    # record filter class
+		    $filter_class->{$name} = $value->{class};
+		}
+		if (exists($value->{options})) {
+		    # record filter options
+		    $filter_opts->{$name} = $value->{options};
+		}
+	    }
+	}
+
 	return $self;
 }
 
@@ -427,7 +455,7 @@ sub process {
 		
 		$lel->cut();
 
-		my ($row,);
+		my ($row, $sep_copy);
 		my $row_pos = 0;
 		
 		while ($row = $iter->next()) {
@@ -437,7 +465,27 @@ sub process {
 				$row_pos++;
 
 				$list->increment();
+
+				if ($list->separators()) {
+				    for my $sep (@{$list->separators}) {
+					for my $elt (@{$sep->{elts}}) {
+					    $sep_copy = $elt->copy();
+					    $sep_copy->paste(%paste_pos);
+					}
+				    }
+				}
 			}
+		}
+
+		if ($sep_copy) {
+		    # remove last separator and original one(s) in the template
+		    $sep_copy->cut();
+		    
+		    for my $sep (@{$list->separators}) {
+			for my $elt (@{$sep->{elts}}) {
+			    $elt->cut();
+			}
+		    }
 		}
 	}
 
@@ -484,10 +532,15 @@ sub process {
 }
 
 sub _replace_within_elts {
-	my ($self, $param, $rep_str) = @_;
+	my ($self, $param, $rep_str, $elt_handler) = @_;
 	my ($name, $zref);
 
 	for my $elt (@{$param->{elts}}) {
+	    if ($elt_handler) {
+		$elt_handler->($elt, $rep_str);
+		next;
+	    }
+
 		$name = $param->{name};
 		$zref = $elt->{"flute_$name"};
 			
@@ -535,7 +588,7 @@ sub process_template {
 sub _replace_record {
 	my ($self, $container, $type, $lel, $paste_pos, $record, $row_pos) = @_;
 	my ($param, $key, $filter, $rep_str, $att_name, $att_spec,
-		$att_tag_name, $att_tag_spec, %att_tags, $att_val, $class_alt);
+		$att_tag_name, $att_tag_spec, %att_tags, $att_val, $class_alt, $elt_handler);
 
 	# now fill in params
 	for $param (@{$container->params}) {
@@ -551,15 +604,29 @@ sub _replace_record {
 			$rep_str = $param->{subref}->($record);
 		}
 				
+		if ($param->{value}) {
+		    if ($rep_str) {
+			$rep_str = $param->{value};
+		    }
+		    else {
+			$rep_str = '';
+		    }
+		}
+
 		if ($param->{filter}) {
-			$rep_str = $self->filter($param->{filter}, $rep_str);
+			$rep_str = $self->filter($param, $rep_str);
 		}
 
 		unless (defined $rep_str) {
 			$rep_str = '';
 		}
-		
-		$self->_replace_within_elts($param, $rep_str);	
+
+		if (ref($param->{op}) eq 'CODE') {
+		    $self->_replace_within_elts($param, $rep_str, $param->{op});
+		}
+		else {
+		    $self->_replace_within_elts($param, $rep_str);
+		}
 	}
 			
 	# now add to the template
@@ -574,23 +641,51 @@ sub _replace_record {
 	$subtree->paste(%$paste_pos);
 }
 
-=head2 filter FILTER VALUE
+=head2 filter ELEMENT VALUE
 
-Runs the filter named FILTER on VALUE and returns the result.
+Runs the filter used by ELEMENT on VALUE and returns the result.
 
 =cut
 
 sub filter {
-	my ($self, $filter, $value) = @_;
-	my ($rep_str);
+	my ($self, $element, $value) = @_;
+	my ($filter, $rep_str, $name, $mod_name, $class, $filter_obj, $filter_sub);
 
-	if (exists $self->{filters}->{$filter}) {
-		$filter = $self->{filters}->{$filter};
-		$rep_str = $filter->($value);
+	$name = $element->{filter};
+
+	if (exists $self->{_filter_subs}->{$name}) {
+	    $filter = $self->{_filter_subs}->{$name};
 	}
 	else {
-		die "Missing filter $filter\n";
+	    # try to bootstrap filter
+	    unless ($class = $self->{_filter_class}->{$name}) {
+		$mod_name = join('', map {ucfirst($_)} split(/_/, $name));
+		$class = "Template::Flute::Filter::$mod_name";
+	    }
+
+	    eval "require $class";
+
+	    if ($@) {
+		die "Missing filter $name: $@\n";
+	    }
+
+	    eval {
+		$filter_obj = $class->new(options => $self->{_filter_opts}->{$name});
+	    };
+
+	    if ($@) {
+		die "Failed to instantiate filter class $class: $@\n";
+	    }
+
+	    if ($filter_obj->can('twig')) {
+		$element->{op} = sub {$filter_obj->twig(@_)};
+	    }
+
+	    $filter_sub = sub {$filter_obj->filter(@_)};
+	    $filter = $self->{_filter_subs}->{$name} = $filter_sub;
 	}
+
+	$rep_str = $filter->($value);
 
 	return $rep_str;
 }
@@ -627,7 +722,8 @@ sub value {
 		
 		# process template and include it
 		%args = (template_file => $include_file,
-				 values => $self->{values});
+			 auto_iterators => $self->{auto_iterators},
+			 values => $self->{values});
 		
 		$raw_value = Template::Flute->new(%args)->process();
 	}
@@ -639,7 +735,7 @@ sub value {
 	}
 
 	if ($value->{filter}) {
-		$rep_str = $self->filter($value->{filter}, $raw_value);
+		$rep_str = $self->filter($value, $raw_value);
 	}
 	else {
 		$rep_str = $raw_value;
@@ -654,44 +750,50 @@ sub value {
 
 sub _replace_values {
 	my ($self) = @_;
-	my ($value, $rep_str, @elts);
+	my ($value, $raw, $rep_str, @elts, $elt_handler);
 	
 	for my $value ($self->{template}->values()) {
 		@elts = @{$value->{elts}};
 
-		if (exists $value->{op}) {
-			if ($value->{op} eq 'toggle') {
-				my $raw;
+		# determine value used for replacements
+		($raw, $rep_str) = $self->value($value);
 
-				($raw, $rep_str) = $self->value($value);
-
-				if (exists $value->{args} && $value->{args} eq 'static') {
-					if ($rep_str) {
-						# preserve static text
-						next;
-					}
-				}
-			
-				unless ($raw) {
-					# remove corresponding HTML elements from tree
-					for my $elt (@elts) {
-						$elt->cut();
-					}
-					next;
-				}
-			}
-			elsif ($value->{op} eq 'hook') {
-				for my $elt (@elts) {
-					Template::Flute::HTML::hook_html($elt, $self->value($value));
-				}
+		if (exists $value->{op} && $value->{op} ne 'append') {
+		    if ($value->{op} eq 'toggle') {
+			if (exists $value->{args} && $value->{args} eq 'static') {
+			    if ($rep_str) {
+				# preserve static text
 				next;
+			    }
 			}
+			
+			unless ($raw) {
+			    # remove corresponding HTML elements from tree
+			    for my $elt (@elts) {
+				$elt->cut();
+			    }
+			    next;
+			}
+		    }
+		    elsif ($value->{op} eq 'hook') {
+			for my $elt (@elts) {
+			    Template::Flute::HTML::hook_html($elt, $rep_str);
+			}
+			next;
+		    }
+		    elsif (ref($value->{op}) eq 'CODE') {
+			$elt_handler = $value->{op};
+		    }
 		}
 		else {
 			$rep_str = $self->value($value);
 		}
 
-		$self->_replace_within_elts($value, $rep_str);
+		unless (defined $rep_str) {
+			$rep_str = '';
+		}
+		
+		$self->_replace_within_elts($value, $rep_str, $elt_handler);
 	}
 }
 
@@ -711,7 +813,8 @@ sub set_values {
 
 =head2 template
 
-Returns HTML template object.
+Returns HTML template object, see L<Template::Flute::HTML> for
+details.
 
 =cut
 
@@ -723,7 +826,8 @@ sub template {
 
 =head2 specification
 
-Returns specification object.
+Returns specification object, see L<Template::Flute::Specification> for
+details.
 
 =cut
 
@@ -762,6 +866,25 @@ The second container is shown if the value C<warnings> or the value C<errors> is
   </container>
 
 =item list
+
+=item separator
+
+Separator elements for list are added after any list item in the output with
+the exception of the last one.
+
+Example specification, HTML template and output:
+
+  <specification>
+  <list name="list" iterator="tokens">
+  <param name="key"/>
+  <separator name="sep"/>
+  </list>
+  </specification>
+
+  <div class="list"><span class="key">KEY</span></div><span class="sep"> | </span>
+
+  <div class="list"><span class="key">FOO</span></div><span class="sep"> | </span>
+  <div class="list"><span class="key">BAR</span></div>
 
 =item param
 
@@ -816,13 +939,69 @@ references and an iterator class with a next and a count method. For your
 convenience you can create an iterator from L<Template::Flute::Iterator>
 class very easily.
 
-=head1 LIST
+=head1 LISTS
 
-L<Template::Flute::List>
+Lists can be accessed after parsing the specification and the HTML template
+through the HTML template object:
+
+    $flute->template->lists();
+
+    $flute->template->list('cart');
+
+Only lists present in the specification and the HTML template can be
+addressed in this way.
+
+See L<Template::Flute::List> for details about lists.
 
 =head1 FORMS
 
-L<Template::Flute::Form>
+Forms can be accessed after parsing the specification and the HTML template
+through the HTML template object:
+
+    $flute->template->forms();
+
+    $flute->template->form('edit_content');
+
+Only forms present in the specification and the HTML template can be
+addressed in this way.
+
+See L<Template::Flute::Form> for details about lists.
+
+=head1 FILTERS
+
+Filters are used to change the display of value and param elements in
+the resulting HTML output:
+
+    <value name="billing_address" filter="eol"/>
+
+    <param name="price" filter="currency"/>
+
+The following filters are included:
+
+=over 4
+
+=item upper
+
+Uppercase filter, see L<Template::Flute::Filter::Upper>.
+
+=item eol
+
+Filter preserving line breaks, see L<Template::Flute::Filter::Eol>.
+
+=item nobreak_single
+
+Filter replacing missing text with no-break space,
+see L<Template::Flute::Filter::NobreakSingle>.
+
+=item currency
+
+Currency filter, see L<Template::Flute::Filter::Currency>.
+
+=item date
+
+Date filter, see L<Template::Flute::Filter::Date>.
+
+=back
 
 =head1 INCLUDES
 

@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Template-Flute
-version:            0.0011
+version:            0.0020
 abstract:           Modern designer-friendly HTML templating Engine
 author:
     - Stefan Hornburg (Racke) <racke@linuxia.de>
