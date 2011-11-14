@@ -68,4 +68,5 @@ t/iterators/01-simple.t
 t/iterators/20-json.t
 t/targets/01-value.t
 t/targets/02-param.t
-META.yml                                 Module meta-data (added by MakeMaker)
+META.yml                                 Module YAML meta-data (added by MakeMaker)
+META.json                                Module JSON meta-data (added by MakeMaker)
