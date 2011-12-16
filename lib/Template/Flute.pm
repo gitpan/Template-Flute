@@ -14,11 +14,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0022
+Version 0.0023
 
 =cut
 
-our $VERSION = '0.0022';
+our $VERSION = '0.0023';
 
 =head1 SYNOPSIS
 
@@ -550,7 +550,12 @@ sub _replace_within_elts {
 		} elsif ($zref->{rep_att}) {
 			# replace attribute instead of embedded text (e.g. for <input>)
 			if (exists $param->{op} && $param->{op} eq 'append') {
+			    if (exists $param->{joiner}) {
+				$elt->set_att($zref->{rep_att}, $zref->{rep_att_orig} . $param->{joiner} . $rep_str);
+			    }
+			    else {
 				$elt->set_att($zref->{rep_att}, $zref->{rep_att_orig} . $rep_str);
+			    }
 			} elsif (exists $param->{op} && $param->{op} eq 'toggle') {
 				if ($rep_str) {
 					$elt->set_att($zref->{rep_att}, $rep_str);
@@ -635,7 +640,12 @@ sub _replace_record {
 	# alternate classes?
 	if ($type eq 'list'
 		&& ($class_alt = $container->static_class($row_pos))) {
-		$subtree->set_att('class', $class_alt);
+	    if ($att_val = $subtree->att('class')) {
+		$subtree->set_att('class', "$att_val $class_alt");
+	    }
+	    else {
+		$subtree->set_att('class', $class_alt);	    
+	    }
 	}
 
 	$subtree->paste(%$paste_pos);

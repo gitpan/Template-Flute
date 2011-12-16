@@ -111,7 +111,7 @@ sub _initialize {
  				 separator => sub {$self->_stash_handler($_[1])},		     
 				 form => sub {$self->_form_handler($_[1])},
 				 param => sub {$self->_stash_handler($_[1])},
-				 value => sub {$self->_value_handler($_[1])},
+				 value => sub {$self->_stash_handler($_[1])},
  				 field => sub {$self->_stash_handler($_[1])},
 				 i18n => sub {$self->_i18n_handler($_[1])},
 				 input => sub {$self->_stash_handler($_[1])},
@@ -134,6 +134,16 @@ sub _spec_handler {
 
 	if ($value = $elt->att('encoding')) {
 		$self->{spec}->encoding($value);
+	}
+
+	# add values remaining on the stash
+	for my $stash_elt (@{$self->{stash}}) {
+	    if ($stash_elt->gi() eq 'value') {
+		$self->_value_handler($stash_elt);
+	    }
+	    else {
+		die "Unexpected element left on stash: ", $stash_elt->gi;
+	    }
 	}
 }
 
@@ -233,6 +243,7 @@ sub _i18n_handler {
 
 sub _stash_flush {
 	my ($self, $elt, $hashref) = @_;
+	my (@stash);
 
 	# examine stash
 	for my $item_elt (@{$self->{stash}}) {
@@ -241,12 +252,12 @@ sub _stash_flush {
 			push (@{$hashref->{$item_elt->gi()}}, $item_elt->atts());
 		}
 		else {
-			warn "Misplace item in stash (" . $item_elt->gi() . "\n";
+		    push (@stash, $item_elt);
 		}
 	}
 
 	# clear stash
-	$self->{stash} = [];
+	$self->{stash} = \@stash;
 
 	return;
 }
