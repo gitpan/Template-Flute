@@ -14,11 +14,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0024
+Version 0.0025
 
 =cut
 
-our $VERSION = '0.0024';
+our $VERSION = '0.0025';
 
 =head1 SYNOPSIS
 
@@ -908,6 +908,10 @@ The following operations are supported for value elements:
 
 =over 4
 
+=item append
+
+Appends the value to the text found in the HTML template.
+
 =item hook
 
 Insert HTML residing in value as subtree of the corresponding HTML element.
@@ -1102,7 +1106,7 @@ a request from Matt S. Trout, author of the L<HTML::Zoom> module.
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2010-2011 Stefan Hornburg (Racke) <racke@linuxia.de>.
+Copyright 2010-2012 Stefan Hornburg (Racke) <racke@linuxia.de>.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published

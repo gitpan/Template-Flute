@@ -130,7 +130,7 @@ sub form {
 
 =head2 values
 
-Returns list of values for this form.
+Returns list of values for this template.
 
 =cut
 
@@ -384,12 +384,23 @@ sub _elt_handler {
 		my $iter;
 		
 		if (exists $self->{lists}->{$name}) {
-			# record static classes
-			$self->{lists}->{$name}->set_static_class(@$static_classes);
+		    # record static classes
+		    my ($list, $first_static, $first_classes);
+		    
+		    $list = $self->{lists}->{$name};
+
+		    if ($first_static = $list->static_class(0)) {
+			# remove static class from initial list element
+			$first_classes = $list->elt->att('class');
+			$first_classes =~ s/\s*\b$first_static\b//;
+			$list->elt->set_att('class', $first_classes);
+		    }
+
+		    $list->set_static_class(@$static_classes);
 				
-			# discard repeated lists
-			$elt->cut();
-			return;
+		    # discard repeated lists
+		    $elt->cut();
+		    return;
 		}
 			
 		$sob->{elts} = [$elt];
@@ -659,7 +670,7 @@ Stefan Hornburg (Racke), <racke@linuxia.de>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2010-2011 Stefan Hornburg (Racke) <racke@linuxia.de>.
+Copyright 2010-2012 Stefan Hornburg (Racke) <racke@linuxia.de>.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published

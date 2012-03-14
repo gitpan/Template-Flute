@@ -2,7 +2,7 @@ NAME
     Template::Flute - Modern designer-friendly HTML templating Engine
 
 VERSION
-    Version 0.0024
+    Version 0.0025
 
 SYNOPSIS
         use Template::Flute;
@@ -244,6 +244,9 @@ SPECIFICATION
 
         The following operations are supported for value elements:
 
+        append
+            Appends the value to the text found in the HTML template.
+
         hook
             Insert HTML residing in value as subtree of the corresponding
             HTML element. HTML will be parsed with XML::Twig.
@@ -392,7 +395,7 @@ HISTORY
     module.
 
 LICENSE AND COPYRIGHT
-    Copyright 2010-2011 Stefan Hornburg (Racke) <racke@linuxia.de>.
+    Copyright 2010-2012 Stefan Hornburg (Racke) <racke@linuxia.de>.
 
     This program is free software; you can redistribute it and/or modify it
     under the terms of either: the GNU General Public License as published
