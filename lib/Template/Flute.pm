@@ -14,11 +14,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0025
+Version 0.0030
 
 =cut
 
-our $VERSION = '0.0025';
+our $VERSION = '0.0030';
 
 =head1 SYNOPSIS
 
@@ -543,7 +543,19 @@ sub _replace_within_elts {
 
 		$name = $param->{name};
 		$zref = $elt->{"flute_$name"};
-			
+
+        if (! $elt->parent && $elt->former_parent) {
+            # paste back a formerly cut element
+            my $pos;
+
+            if ($pos = $elt->former_prev_sibling) {
+                $elt->paste(after => $pos);
+            }
+            else {
+                $elt->paste(first_child => $elt->former_parent);
+            }
+        }
+        
 		if ($zref->{rep_sub}) {
 			# call subroutine to handle this element
 			$zref->{rep_sub}->($elt, $rep_str);
@@ -898,6 +910,30 @@ Example specification, HTML template and output:
 
 =item param
 
+The following operations are supported for param elements:
+
+=over 4
+
+=item append
+ 
+Appends the param value to the text found in the HTML template.
+
+=item toggle
+
+Only shows corresponding HTML element if param value is set.
+
+=back
+
+Other attributes for param elements are:
+
+=over 4
+
+=item filter
+
+Applies filter to param value.
+
+=back
+
 =item value
 
 Value elements are replaced with a single value present in the values hash
@@ -926,6 +962,10 @@ Only shows corresponding HTML element if value is set.
 Other attributes for value elements are:
 
 =over 4
+
+=item filter
+
+Applies filter to value.
 
 =item include
 

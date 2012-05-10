@@ -341,7 +341,6 @@ sub _parse_handler {
 		if ($sob = $spec_object->element_by_id($id)) {
 			$name = $sob->{name} || $id;
 			$self->_elt_handler($sob, $elt, $gi, $spec_object, $name);
-			return $self;
 		}
 	}
 
@@ -534,6 +533,17 @@ sub _elt_indicate_replacements {
 			$elt->{"flute_$name"}->{rep_sub} = \&hook_html;
 			return;
 		}
+        elsif ($sob->{op} eq 'toggle' && exists $sob->{args}
+               && $sob->{args} eq 'tree') {
+            $elt->{"flute_$name"}->{rep_sub} = sub {
+                my ($elt, $value) = @_;
+                unless (defined $value && $value =~ /\S/) {
+                    $elt->cut;
+                }
+
+                return;
+            };
+        }
 	}
 	
 	if ($sob->{target}) {
