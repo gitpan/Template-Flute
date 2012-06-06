@@ -14,11 +14,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0030
+Version 0.0040
 
 =cut
 
-our $VERSION = '0.0030';
+our $VERSION = '0.0040';
 
 =head1 SYNOPSIS
 
@@ -209,18 +209,20 @@ Builds iterators automatically from values.
 # Constructor
 
 sub new {
-	my ($class, $self, $filter_subs, $filter_opts, $filter_class);
+	my ($class, $self, $filter_subs, $filter_opts, $filter_class, $filter_objects);
 
 	$class = shift;
 
 	$filter_subs = {};
 	$filter_opts = {};
 	$filter_class = {};
-
+    $filter_objects = {};
+    
 	$self = {iterators => {}, @_, 
-		 _filter_subs => $filter_subs,
-		 _filter_opts => $filter_opts,
-		 _filter_class => $filter_class,
+             _filter_subs => $filter_subs,
+             _filter_opts => $filter_opts,
+             _filter_class => $filter_class,
+             _filter_objects => $filter_objects,
 	};
 
 	bless $self, $class;
@@ -455,14 +457,56 @@ sub process {
 		
 		$lel->cut();
 
-		my ($row, $sep_copy);
+		my ($row, $sep_copy, $list_elt);
 		my $row_pos = 0;
-		
+        
+		my ($level_last, $level_val, @level_elts, @siblings, @level_stack);
+        $level_last = 0;
+        my $level_collect_sub;
+        
+        if ($list->{sob}->{level}) {
+            # prepare function for flat trees
+            $level_collect_sub = sub {
+                my ($record, $list_elt) = @_;
+                
+                # register as sibling
+                if ($record) {
+                    $level_val =  $row->{$list->{sob}->{level}} || 0;
+                    push (@{$siblings[$level_val]}, $list_elt);
+                }
+                else {
+                    $level_val = 0;
+                }
+                
+                if ($level_val < $level_last) {
+                    # fill stack for tree manipulations
+                    for my $ll ($level_last - 1 .. $level_val) {
+                        unshift (@level_stack,
+                                 {parent => $level_elts[$ll],
+                                  children => [@{$siblings[$ll+1]}],
+                                 });
+                            
+                        $siblings[$ll+1] = [];
+                    }
+                }
+
+                if ($record) {
+                    $level_elts[$level_val] = $list_elt;
+                    $level_last = $level_val;
+                }
+            };
+        }
+        
 		while ($row = $iter->next()) {
+            
 			if ($row = $list->filter($self, $row)) {
-				$self->_replace_record($list, 'list', $lel, \%paste_pos, $row, $row_pos);
-			
-				$row_pos++;
+				$list_elt = $self->_replace_record($list, 'list', $lel, \%paste_pos, $row, $row_pos);
+
+                if ($list->{sob}->{level}) {
+                    $level_collect_sub->($row, $list_elt);
+                } 
+
+       		$row_pos++;
 
 				$list->increment();
 
@@ -487,6 +531,22 @@ sub process {
 			}
 		    }
 		}
+
+        # collect last element
+        if ($list->{sob}->{level}) {
+            $level_collect_sub->();
+
+            for my $lref (@level_stack) {
+                # create <ul> element and move inferior elements
+                my $ul = $lref->{parent}->insert_new_elt('last_child', 'ul');
+
+                for my $cref (@{$lref->{children}}) {
+                    $cref->move(last_child => $ul);
+                }
+            }
+        }
+
+        
 	}
 
 	for my $form ($self->{template}->forms()) {
@@ -661,6 +721,7 @@ sub _replace_record {
 	}
 
 	$subtree->paste(%$paste_pos);
+    return $subtree;
 }
 
 =head2 filter ELEMENT VALUE
@@ -671,45 +732,46 @@ Runs the filter used by ELEMENT on VALUE and returns the result.
 
 sub filter {
 	my ($self, $element, $value) = @_;
-	my ($filter, $rep_str, $name, $mod_name, $class, $filter_obj, $filter_sub);
+	my ($filter, $name, $mod_name, $class, $filter_obj, $filter_sub);
 
 	$name = $element->{filter};
 
-	if (exists $self->{_filter_subs}->{$name}) {
-	    $filter = $self->{_filter_subs}->{$name};
-	}
-	else {
-	    # try to bootstrap filter
+    if (exists $self->{_filter_subs}->{$name}) {
+        $filter = $self->{_filter_subs}->{$name};
+        return $filter->($value);
+    }
+    
+    unless (exists $self->{_filter_objects}->{$name}) {
+        # try to bootstrap filter
 	    unless ($class = $self->{_filter_class}->{$name}) {
-		$mod_name = join('', map {ucfirst($_)} split(/_/, $name));
-		$class = "Template::Flute::Filter::$mod_name";
+            $mod_name = join('', map {ucfirst($_)} split(/_/, $name));
+            $class = "Template::Flute::Filter::$mod_name";
 	    }
 
 	    eval "require $class";
 
 	    if ($@) {
-		die "Missing filter $name: $@\n";
+            die "Missing filter $name: $@\n";
 	    }
 
 	    eval {
-		$filter_obj = $class->new(options => $self->{_filter_opts}->{$name});
+            $filter_obj = $class->new(options => $self->{_filter_opts}->{$name});
 	    };
 
 	    if ($@) {
-		die "Failed to instantiate filter class $class: $@\n";
+            die "Failed to instantiate filter class $class: $@\n";
 	    }
 
-	    if ($filter_obj->can('twig')) {
+        $self->{_filter_objects}->{$name} = $filter_obj;
+    }
+
+    $filter_obj = $self->{_filter_objects}->{$name};
+    
+    if ($filter_obj->can('twig')) {
 		$element->{op} = sub {$filter_obj->twig(@_)};
-	    }
+    }
 
-	    $filter_sub = sub {$filter_obj->filter(@_)};
-	    $filter = $self->{_filter_subs}->{$name} = $filter_sub;
-	}
-
-	$rep_str = $filter->($value);
-
-	return $rep_str;
+    return $filter_obj->filter($value);
 }
 
 =head2 value NAME
@@ -776,6 +838,7 @@ sub _replace_values {
 	
 	for my $value ($self->{template}->values()) {
 		@elts = @{$value->{elts}};
+        $elt_handler = undef;
 
 		# determine value used for replacements
 		($raw, $rep_str) = $self->value($value);
@@ -1072,6 +1135,11 @@ Requires L<Number::Format> module.
 
 Date filter, see L<Template::Flute::Filter::Date>.
 Requires L<DateTime> and L<DateTime::Format::ISO8601> modules.
+
+=item language_name
+
+Language name filter, see L<Template::Flute::Filter::LanguageName>.
+Requires L<Locales> module.
 
 =back
 
