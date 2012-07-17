@@ -14,11 +14,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0040
+Version 0.0050
 
 =cut
 
-our $VERSION = '0.0040';
+our $VERSION = '0.0050';
 
 =head1 SYNOPSIS
 
@@ -973,6 +973,8 @@ Example specification, HTML template and output:
 
 =item param
 
+Param elements are replaced with the corresponding value from the list iterator.
+
 The following operations are supported for param elements:
 
 =over 4
@@ -994,6 +996,12 @@ Other attributes for param elements are:
 =item filter
 
 Applies filter to param value.
+
+=item increment
+
+Uses value from increment instead of a value from the iterator.
+
+    <param name="pos" increment="1">
 
 =back
 
@@ -1098,7 +1106,7 @@ through the HTML template object:
 Only forms present in the specification and the HTML template can be
 addressed in this way.
 
-See L<Template::Flute::Form> for details about lists.
+See L<Template::Flute::Form> for details about forms.
 
 =head1 FILTERS
 
@@ -1135,6 +1143,11 @@ Requires L<Number::Format> module.
 
 Date filter, see L<Template::Flute::Filter::Date>.
 Requires L<DateTime> and L<DateTime::Format::ISO8601> modules.
+
+=item country_name
+
+Country name filter, see L<Template::Flute::Filter::CountryName>.
+Requires L<Locales> module.
 
 =item language_name
 

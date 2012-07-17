@@ -1,4 +1,4 @@
-package Template::Flute::Filter::LanguageName;
+package Template::Flute::Filter::CountryName;
 
 use strict;
 use warnings;
@@ -9,11 +9,11 @@ use base 'Template::Flute::Filter';
 
 =head1 NAME
 
-Template::Flute::Filter::LanguageName - language name filter
+Template::Flute::Filter::CountryName - country name filter
 
 =head1 DESCRIPTION
 
-Language name filter based on L<Locales>.
+Country name filter based on L<Locales>.
 
 =head1 PREREQUISITES
 
@@ -29,7 +29,7 @@ The init method allows you to set the following options:
 
 =item locale
 
-Locale for language name output.
+Locale for country name output.
 
 =item clear_current_locale
 
@@ -52,7 +52,7 @@ sub init {
 
 =head2 filter
 
-Language name filter.
+Country name filter.
 
 =cut
 
@@ -61,11 +61,8 @@ sub filter {
     my $name = '';
 
     if ($code) {
-        # cut off sub locales
-        $code =~ s/_(\w+)$//;
-
         unless ($self->{clear_current_locale} && $code eq $self->{locale}) {
-            $name = $self->{object}->get_language_from_code($code);
+            $name = $self->{object}->get_territory_from_code($code);
         }
     }
     

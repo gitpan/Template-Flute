@@ -12,6 +12,7 @@ lib/Template/Flute/Filter.pm
 lib/Template/Flute/Filter/Currency.pm
 lib/Template/Flute/Filter/Date.pm
 lib/Template/Flute/Filter/Eol.pm
+lib/Template/Flute/Filter/CountryName.pm
 lib/Template/Flute/Filter/LanguageName.pm
 lib/Template/Flute/Filter/NobreakSingle.pm
 lib/Template/Flute/Filter/Upper.pm
@@ -20,13 +21,13 @@ lib/Template/Flute/Specification/XML.pm
 lib/Template/Flute/Specification.pm
 lib/Template/Flute/Container.pm
 lib/Template/Flute/List.pm
-lib/Template/Flute/HTML/Table.pm
 lib/Template/Flute/Database/Rose.pm
 lib/Template/Flute/Expression.pm
 lib/Template/Flute/Form.pm
 lib/Template/Flute/I18N.pm
 lib/Template/Flute/Iterator.pm
 lib/Template/Flute/Iterator/JSON.pm
+lib/Template/Flute/Paginator.pm
 lib/Template/Flute/HTML.pm
 lib/Template/Flute/Utils.pm
 t/boilerplate.t
@@ -61,6 +62,7 @@ t/filters/eol.t
 t/filters/nobreak_single.t
 t/filters/subs.t
 t/filters/upper.t
+t/values/basic.t
 t/i18n/01-simple.t
 t/forms/01-name.t
 t/forms/02-link.t
@@ -69,7 +71,10 @@ t/forms/06-select.t
 t/iterators/00-load.t
 t/iterators/01-simple.t
 t/iterators/20-json.t
+t/iterators/paginator.t
 t/lists/alternate-classes.t
+t/lists/increments.t
+t/lists/params.t
 t/lists/separator.t
 t/targets/01-value.t
 t/targets/02-param.t
