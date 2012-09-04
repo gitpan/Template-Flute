@@ -14,11 +14,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0051
+Version 0.0052
 
 =cut
 
-our $VERSION = '0.0051';
+our $VERSION = '0.0052';
 
 =head1 SYNOPSIS
 
@@ -835,7 +835,7 @@ sub value {
 sub _replace_values {
 	my ($self) = @_;
 	my ($value, $raw, $rep_str, @elts, $elt_handler);
-	
+
 	for my $value ($self->{template}->values()) {
 		@elts = @{$value->{elts}};
         $elt_handler = undef;
@@ -843,31 +843,38 @@ sub _replace_values {
 		# determine value used for replacements
 		($raw, $rep_str) = $self->value($value);
 
-		if (exists $value->{op} && $value->{op} ne 'append') {
-		    if ($value->{op} eq 'toggle') {
-			if (exists $value->{args} && $value->{args} eq 'static') {
-			    if ($rep_str) {
-				# preserve static text
-				next;
-			    }
-			}
-			
-			unless ($raw) {
-			    # remove corresponding HTML elements from tree
-			    for my $elt (@elts) {
-				$elt->cut();
-			    }
-			    next;
-			}
+		if (exists $value->{op}) {
+            if ($value->{op} eq 'append' && ! $value->{target}) {
+                $elt_handler = sub {
+                    my ($elt, $str) = @_;
+
+                    $elt->set_text($elt->text_only . $str);
+                };
+            }
+		    elsif ($value->{op} eq 'toggle') {
+                if (exists $value->{args} && $value->{args} eq 'static') {
+                    if ($rep_str) {
+                        # preserve static text
+                        next;
+                    }
+                }
+
+                unless ($raw) {
+                    # remove corresponding HTML elements from tree
+                    for my $elt (@elts) {
+                        $elt->cut();
+                    }
+                    next;
+                }
 		    }
 		    elsif ($value->{op} eq 'hook') {
-			for my $elt (@elts) {
-			    Template::Flute::HTML::hook_html($elt, $rep_str);
-			}
-			next;
+                for my $elt (@elts) {
+                    Template::Flute::HTML::hook_html($elt, $rep_str);
+                }
+                next;
 		    }
 		    elsif (ref($value->{op}) eq 'CODE') {
-			$elt_handler = $value->{op};
+                $elt_handler = $value->{op};
 		    }
 		}
 		else {
@@ -877,7 +884,7 @@ sub _replace_values {
 		unless (defined $rep_str) {
 			$rep_str = '';
 		}
-		
+
 		$self->_replace_within_elts($value, $rep_str, $elt_handler);
 	}
 }
