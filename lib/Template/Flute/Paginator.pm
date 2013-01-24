@@ -29,6 +29,9 @@ Template::Flute::Paginator - Generic paginator class for Template::Flute
     $paginator->position_first;
     $paginator->position_last;
 
+    # select a page (starting with 1)
+    $paginator->select_page;
+
 =cut
 
 has iterator => (
@@ -93,6 +96,28 @@ sub current_page {
     }
 
     return $self->{current_page};
+}
+
+=head2 select_page {
+
+Select page, starting from 1.
+
+=cut
+
+sub select_page {
+    my ($self, $page) = @_;
+    my ($new_position, $distance);
+    
+    # calculate number of entries
+    $new_position = ($page  - 1) * $self->page_size;
+
+    $distance = $new_position - $self->page_position + $page - 2;
+
+    if ($distance > 1) {
+        for (0 .. $distance) {
+            $self->next;
+        }
+    }
 }
 
 =head2 position_first
@@ -192,7 +217,7 @@ Stefan Hornburg (Racke), <racke@linuxia.de>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2010-2012 Stefan Hornburg (Racke) <racke@linuxia.de>.
+Copyright 2010-2013 Stefan Hornburg (Racke) <racke@linuxia.de>.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published

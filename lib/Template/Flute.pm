@@ -7,6 +7,7 @@ use Template::Flute::Utils;
 use Template::Flute::Specification::XML;
 use Template::Flute::HTML;
 use Template::Flute::Iterator;
+use Template::Flute::Paginator;
 
 =head1 NAME
 
@@ -14,11 +15,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0052
+Version 0.0060
 
 =cut
 
-our $VERSION = '0.0052';
+our $VERSION = '0.0060';
 
 =head1 SYNOPSIS
 
@@ -496,9 +497,161 @@ sub process {
                 }
             };
         }
-        
+
+        if ($list->{paging}) {
+            # turn iterator into paginator
+            my $page_size = $list->{paging}->{page_size} || 20;
+
+            $iter = Template::Flute::Paginator->new(iterator => $iter,
+                                                    page_size => $page_size);
+
+            if ($iter->pages > 1) {
+                my ($element_orig, $element_copy, %element_pos, $element_link,
+                    $paging_page, $paging_link, $slide_length, $element, $element_active, $paging_min, $paging_max);
+
+                $paging_page = $self->{values}->{$list->{paging}->{page_value}}  || 1;
+                $paging_link = $self->{values}->{$list->{paging}->{link_value}};
+
+                $slide_length = $list->{paging}->{slide_length};
+
+                $paging_min = 1;
+                $paging_max = $iter->pages;
+
+                if ($slide_length > 0) {
+                    # determine the page numbers to show up
+                    if ($iter->pages > $slide_length) {
+                        $paging_min = int($paging_page - $slide_length / 2);
+
+                        if ($paging_min < 1) {
+                            $paging_min = 1;
+                        }
+
+                        $paging_max = $paging_min + $slide_length - 1;
+                    }
+                }
+
+                $iter->select_page($paging_page);
+
+                for my $type (qw/first previous next last active standard/) {
+                    if ($element = $list->{paging}->{elements}->{$type}) {
+                        $element_orig = shift @{$element->{elts}};
+                        next unless $element_orig;
+
+                        # cut any other elements
+                        for my $sf (@{$element->{elts}}) {
+                            $sf->cut;
+                        }
+                    }
+                    else {
+                        next;
+                    }
+
+                    if ($element_orig->is_last_child()) {			
+                        %element_pos = (last_child => $element_orig->parent());
+                    }
+                    elsif ($element_orig->next_sibling()) {
+                        %element_pos = (before => $element_orig->next_sibling());
+                    }
+                    else {
+                        die "Neither last child nor next sibling.";
+                    }
+                   
+                    if ($element->{type} eq 'active') {
+                        $element_active = $element_orig;
+                    }
+                    elsif ($element->{type} eq 'standard') {
+                        for (1 .. $iter->pages) {
+                            next if $_ < $paging_min || $_ > $paging_max;
+
+                            if ($_ == $paging_page) {
+                                # Move active element here
+                                if ($element_active->{"flute_active"}->{rep_elt}) {
+                                    $element_active->{"flute_active"}->{rep_elt}->set_text($_);
+                                }
+                                else {
+                                    $element_active->set_text($_);
+                                }
+
+                                $element_copy = $element_active->cut;
+                                $element_copy->paste(%element_pos);
+                                next;
+                            }
+
+                            # Adjust text
+                            if ($element_orig->{"flute_$element->{name}"}->{rep_elt}) {
+                                $element_orig->{"flute_$element->{name}"}->{rep_elt}->set_text($_);
+                            }
+                            else {
+                                $element_orig->set_text($_);
+                            }
+
+                            # Adjust link
+                            if ($element_link = $element_orig->first_descendant('a')) {
+                                $self->_paging_link($element_link, $paging_link, $_);
+                            }
+
+                            # Copy HTML element
+                            $element_copy = $element_orig->copy;
+                            $element_copy->paste(%element_pos);
+                        }
+
+                        $element_orig->cut;
+                    }
+                    elsif ($element->{type} eq 'first') {
+                        if ($paging_page > 1) {
+                            # Adjust link
+                            if ($element_link = $element_orig->first_descendant('a')) {
+                                $self->_paging_link($element_link, $paging_link, 1);
+                            }
+                        }
+                        else {
+                            $element_orig->cut;
+                        }
+                    }
+                    elsif ($element->{type} eq 'last') {
+                        if ($paging_page < $iter->pages) {
+                            # Adjust link
+                            if ($element_link = $element_orig->first_descendant('a')) {
+                                $self->_paging_link($element_link, $paging_link, $iter->pages);
+                            }
+                        }
+                        else {
+                            $element_orig->cut;
+                        }
+                    }
+                    elsif ($element->{type} eq 'next') {
+                        if ($paging_page < $iter->pages) {
+                            # Adjust link
+                            if ($element_link = $element_orig->first_descendant('a')) {
+                                $self->_paging_link($element_link, $paging_link, $paging_page + 1);
+                            }
+                        }
+                        else {
+                            $element_orig->cut;
+                        }
+                    }
+                    elsif ($element->{type} eq 'previous') {
+                        if ($paging_page > 1) {
+                            # Adjust link
+                            if ($element_link = $element_orig->first_descendant('a')) {
+                                $self->_paging_link($element_link, $paging_link, $paging_page - 1);
+                            }
+                        }
+                        else {
+                            $element_orig->cut;
+                        }
+                    }
+                }
+            }
+            else {
+                # remove paging area
+                for my $paging_elt (@{$list->{paging}->{elts}}) {
+                    $paging_elt->cut;
+                }
+            }
+        }
+
 		while ($row = $iter->next()) {
-            
 			if ($row = $list->filter($self, $row)) {
 				$list_elt = $self->_replace_record($list, 'list', $lel, \%paste_pos, $row, $row_pos);
 
@@ -591,6 +744,33 @@ sub process {
 	return $self->{template}->{xml}->sprint;
 }
 
+sub _paging_link {
+    my ($self, $elt, $paging_link, $paging_page) = @_;
+    my ($path, $uri);
+
+    if (ref($paging_link) =~ /^URI::/) {
+        # add to path
+        $uri = $paging_link->clone;
+        if ($paging_page == 1) {
+            $uri->path(join('/', $paging_link->path));
+        }
+        else {
+            $uri->path(join('/', $paging_link->path, $paging_page));
+        }
+        $path = $uri->as_string;
+    }
+    else {
+        if ($paging_page == 1) {
+            $path = "/$paging_link";
+        }
+        else {
+            $path = "/$paging_link/$paging_page";
+        }
+    }
+
+    $elt->set_att(href => $path);
+}
+
 sub _replace_within_elts {
 	my ($self, $param, $rep_str, $elt_handler) = @_;
 	my ($name, $zref);
@@ -608,7 +788,7 @@ sub _replace_within_elts {
             # paste back a formerly cut element
             my $pos;
 
-            if ($pos = $elt->former_prev_sibling) {
+            if (($pos = $elt->former_prev_sibling) && $pos->parent) {
                 $elt->paste(after => $pos);
             }
             else {
@@ -641,7 +821,14 @@ sub _replace_within_elts {
 			# use provided text element for replacement
 			$zref->{rep_elt}->set_text($rep_str);
 		} else {
-			$elt->set_text($rep_str);
+            if (exists $param->{op} && $param->{op} eq 'toggle') {
+                unless ($rep_str) {
+                    $elt->cut;
+                }
+            }
+            else {
+                $elt->set_text($rep_str);
+            }
 		}
 	}
 }
@@ -732,9 +919,28 @@ Runs the filter used by ELEMENT on VALUE and returns the result.
 
 sub filter {
 	my ($self, $element, $value) = @_;
-	my ($filter, $name, $mod_name, $class, $filter_obj, $filter_sub);
+	my ($name, @filters);
 
 	$name = $element->{filter};
+
+    @filters = grep {/\S/} split(/\s+/, $name);
+
+    if (@filters > 1) {
+        # chain filters
+        for my $f_name (@filters) {
+            $value = $self->_filter($f_name, $element, $value);
+        }
+
+        return $value;
+    }
+    else {
+        return $self->_filter($name, $element, $value);
+    }
+}
+
+sub _filter {
+    my ($self, $name, $element, $value) = @_;
+	my ($filter, $mod_name, $class, $filter_obj, $filter_sub);
 
     if (exists $self->{_filter_subs}->{$name}) {
         $filter = $self->{_filter_subs}->{$name};
@@ -812,7 +1018,30 @@ sub value {
 		$raw_value = Template::Flute->new(%args)->process();
 	}
 	elsif (exists $value->{field}) {
-		$raw_value = $ref_value->{$value->{field}};
+        if (ref($value->{field}) eq 'ARRAY') {
+            my $lookup;
+
+            $raw_value = $ref_value;
+
+            for $lookup (@{$value->{field}}) {
+                if (ref($raw_value)
+                    && exists $raw_value->{$lookup}) {
+                    $raw_value = $raw_value->{$lookup};
+                }
+                else {
+                    $raw_value = '';
+                    last;
+                }
+            }
+
+            if (ref $raw_value) {
+                # second case: don't pass back stringified reference
+                $raw_value = '';
+            }
+        }
+        else {
+            $raw_value = $ref_value->{$value->{field}};
+        }
 	}
 	else {
 		$raw_value = $ref_value->{$value->{name}};
@@ -855,6 +1084,12 @@ sub _replace_values {
                 if (exists $value->{args} && $value->{args} eq 'static') {
                     if ($rep_str) {
                         # preserve static text
+                        next;
+                    }
+                }
+                elsif ($rep_str) {
+                    for my $elt (@elts) {
+                        $elt->set_text($rep_str);
                         next;
                     }
                 }
@@ -1132,6 +1367,11 @@ The following filters are included:
 
 Uppercase filter, see L<Template::Flute::Filter::Upper>.
 
+=item strip
+
+Strips whitespace at the beginning at the end,
+see L<Template::Flute::Filter::Strip>.
+
 =item eol
 
 Filter preserving line breaks, see L<Template::Flute::Filter::Eol>.
@@ -1161,12 +1401,41 @@ Requires L<Locales> module.
 Language name filter, see L<Template::Flute::Filter::LanguageName>.
 Requires L<Locales> module.
 
+=item json_var
+
+JSON to Javascript variable filter, see L<Template::Flute::Filter::JsonVar>.
+Requires L<JSON> module.
+
 =back
 
 Filter classes are loaded at runtime for efficiency and to keep the
 number of dependencies for Template::Flute as small as possible.
 
 See above for prerequisites needed by the included filter classes.
+
+=head2 Chained Filters
+
+Filters can also be chained:
+
+    <value name="note" filter="upper eol"/>
+
+Example template:
+
+    <div class="note">
+        This is a note.
+    </div>
+
+With the following value:
+
+    Update now!
+    Avoid security hazards!
+
+The HTML output would look like:
+
+    <div class="note">
+    UPDATE NOW!<br />
+    AVOID SECURITY HAZARDS!
+    </div>
 
 =head1 INCLUDES
 
@@ -1234,7 +1503,7 @@ a request from Matt S. Trout, author of the L<HTML::Zoom> module.
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2010-2012 Stefan Hornburg (Racke) <racke@linuxia.de>.
+Copyright 2010-2013 Stefan Hornburg (Racke) <racke@linuxia.de>.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published

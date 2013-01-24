@@ -18,7 +18,7 @@ Creates Template::Flute::List object.
 # Constructor
 sub new {
 	my ($class, $sob, $static, $spec, $name) = @_;
-	my ($self);
+	my ($self, $lf);
 	
 	$class = shift;
 	$static ||= [];
@@ -35,7 +35,10 @@ sub new {
 		$self->inputs_add($spec->list_inputs($name));
 		$self->filters_add($spec->list_filters($name));
 		$self->sorts_add($spec->list_sorts($name));
-		$self->paging_add($spec->list_paging($name));
+
+        if ($lf = $spec->list_paging($name)) {
+            $self->paging_add($lf);
+        }
 	}
 	
 	return $self;
@@ -452,7 +455,7 @@ Stefan Hornburg (Racke), <racke@linuxia.de>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2010-2012 Stefan Hornburg (Racke) <racke@linuxia.de>.
+Copyright 2010-2013 Stefan Hornburg (Racke) <racke@linuxia.de>.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published

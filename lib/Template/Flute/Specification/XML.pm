@@ -106,7 +106,7 @@ sub _initialize {
 	%handlers = (specification => sub {$self->_spec_handler($_[1])},
  				 container => sub {$self->_container_handler($_[1])},
 				 list => sub {$self->_list_handler($_[1])},
-				 paging => sub {$self->_stash_handler($_[1])},
+				 paging => sub {$self->_paging_handler($_[1])},
  				 filter => sub {$self->_stash_handler($_[1])},
  				 separator => sub {$self->_stash_handler($_[1])},		     
 				 form => sub {$self->_form_handler($_[1])},
@@ -177,6 +177,34 @@ sub _list_handler {
 	$self->{spec}->list_add(\%list);
 }
 
+sub _paging_handler {
+    my ($self, $elt) = @_;
+    my ($name, %paging, %paging_elts);
+
+    $name = $elt->att('name');
+
+    $paging{paging} = $elt->atts();
+
+    for my $child ($elt->children()) {
+		if ($child->gi() eq 'element') {
+			$paging_elts{$child->att('type')} = {type => $child->att('type'),
+                                                 name => $child->att('name'),
+                                                };
+		}
+		else {
+			die "Invalid child for paging $name.\n";
+		}
+	}
+
+	unless (keys %paging_elts) {
+		die "Empty paging $name.\n";
+	}
+
+	$paging{paging}->{elements} = \%paging_elts;
+
+    $self->{spec}->paging_add(\%paging);
+}
+
 sub _sort_handler {
 	my ($self, $elt) = @_;
 	my (@ops, $name);
@@ -199,6 +227,10 @@ sub _sort_handler {
 	}
 	
 	$elt->set_att('ops', \@ops);
+
+    # flush elements from stash
+	$self->_stash_flush($elt, {});
+    
 	push @{$self->{stash}}, $elt;	
 }
 
@@ -291,7 +323,7 @@ Stefan Hornburg (Racke), <racke@linuxia.de>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2010-2012 Stefan Hornburg (Racke) <racke@linuxia.de>.
+Copyright 2010-2013 Stefan Hornburg (Racke) <racke@linuxia.de>.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published

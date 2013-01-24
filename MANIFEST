@@ -13,9 +13,11 @@ lib/Template/Flute/Filter/Currency.pm
 lib/Template/Flute/Filter/Date.pm
 lib/Template/Flute/Filter/Eol.pm
 lib/Template/Flute/Filter/CountryName.pm
+lib/Template/Flute/Filter/JsonVar.pm
 lib/Template/Flute/Filter/LanguageName.pm
 lib/Template/Flute/Filter/NobreakSingle.pm
 lib/Template/Flute/Filter/Replace.pm
+lib/Template/Flute/Filter/Strip.pm
 lib/Template/Flute/Filter/Upper.pm
 lib/Template/Flute/Specification/Scoped.pm
 lib/Template/Flute/Specification/XML.pm
@@ -60,11 +62,15 @@ t/files/utf8.html
 t/filters/currency.t
 t/filters/date.t
 t/filters/eol.t
+t/filters/json.t
+t/filters/multi.t
 t/filters/nobreak_single.t
+t/filters/strip.t
 t/filters/subs.t
 t/filters/upper.t
 t/values/append.t
 t/values/basic.t
+t/values/toggle.t
 t/i18n/01-simple.t
 t/forms/01-name.t
 t/forms/02-link.t
