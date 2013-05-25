@@ -15,11 +15,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0061
+Version 0.0062
 
 =cut
 
-our $VERSION = '0.0061';
+our $VERSION = '0.0062';
 
 =head1 SYNOPSIS
 
@@ -1312,6 +1312,68 @@ is usually more convenient.
 =item i18n
 
 =back
+
+=head1 CONDITIONALS
+
+=head2 Display image only if present
+
+In this example we want to show an image only on
+a certain condition:
+
+HTML:
+
+    <span class="banner-box">
+        <img class="banner" src=""/>
+    </span>
+
+XML:
+
+    <container name="banner-box" value="banner">
+        <value name="banner" target="src"/>
+    </container>
+
+Source code:
+
+    if ($organization eq 'Big One') {
+        $values{banner} = 'banners/big_one.png';
+    }
+
+=head2 Display link in a list only if present
+
+In this example we want so show a link only if
+an URL is available:
+
+HTML:
+
+    <div class="linklist">
+        <span class="name">Name</span>
+        <div class="link">
+            <a href="#" class="url">Goto ...</a>
+        </div>
+    </div>
+
+XML:
+
+    <specification name="link">
+        <list name="links" class="linklist" iterator="links">
+            <param name="name"/>
+            <param name="url" target="href"/>
+            <param name="link" field="url" op="toggle" args="tree"/>
+        </list>
+    </specification>
+
+Source code:
+
+   @records = ({name => 'Link', url => 'http://localhost/'},
+               {name => 'No Link'},
+               {name => 'Another Link', url => 'http://localhost/'},
+              );
+
+   $flute = Template::Flute->new(specification => $spec_xml,
+                                 template => $template,
+                                 iterators => {links => \@records});
+
+   $output = $flute->process();
 
 =head1 ITERATORS
 
