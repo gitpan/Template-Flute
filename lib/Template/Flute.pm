@@ -15,11 +15,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0062
+Version 0.0063
 
 =cut
 
-our $VERSION = '0.0062';
+our $VERSION = '0.0063';
 
 =head1 SYNOPSIS
 
@@ -1013,6 +1013,7 @@ sub value {
 		# process template and include it
 		%args = (template_file => $include_file,
 			 auto_iterators => $self->{auto_iterators},
+             filters => $self->{filters},
 			 values => $self->{values});
 		
 		$raw_value = Template::Flute->new(%args)->process();
@@ -1264,7 +1265,7 @@ Appends the value to the text found in the HTML template.
 =item hook
 
 Insert HTML residing in value as subtree of the corresponding HTML element.
-HTML will be parsed with L<XML::Twig>.
+HTML will be parsed with L<XML::Twig>. See L</INSERT HTML> for an example.
 
 =item toggle
 
@@ -1384,6 +1385,36 @@ references and an iterator class with a next and a count method. For your
 convenience you can create an iterator from L<Template::Flute::Iterator>
 class very easily.
 
+=head2 DROPDOWNS
+
+Iterators can be used for dropdowns (HTML <select> elements) as well.
+
+Template:
+
+    <select class="color"></select>
+
+Specification:
+
+    <value name="color" iterator="colors"/>
+
+Code:
+
+    @colors = ({value => 'red', label => 'Red'},
+               {value => 'black', label => 'Black'});
+
+    $flute = Template::Flute->new(template => $html,
+                              specification => $spec,
+                              iterators => {colors => \@colors},
+                              values => {color => 'black'},
+                             );
+
+HTML output:
+
+      <select class="color">
+      <option value="red">Red</option>
+      <option value="black" selected="selected">Black</option>
+      </select>
+
 =head1 LISTS
 
 Lists can be accessed after parsing the specification and the HTML template
@@ -1499,7 +1530,22 @@ The HTML output would look like:
     AVOID SECURITY HAZARDS!
     </div>
 
-=head1 INCLUDES
+=head1 INSERT HTML AND INCLUDE FILES
+
+=head2 INSERT HTML
+
+HTML can be generated in the code or retrieved from a database
+and inserted into the template through the C<hook> operation:
+
+    <value name="description" op="hook"/>
+
+The result replaces the inner HTML of the following C<div> tag:
+
+    <div class="description">
+        Sample content
+    </div>
+
+=head2 INCLUDE FILES
 
 Files, especially components for web pages can be processed and included
 through value elements with the include attribute:
