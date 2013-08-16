@@ -15,11 +15,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0063
+Version 0.0064
 
 =cut
 
-our $VERSION = '0.0063';
+our $VERSION = '0.0064';
 
 =head1 SYNOPSIS
 
@@ -803,7 +803,9 @@ sub _replace_within_elts {
 			# replace attribute instead of embedded text (e.g. for <input>)
 			if (exists $param->{op} && $param->{op} eq 'append') {
 			    if (exists $param->{joiner}) {
-				$elt->set_att($zref->{rep_att}, $zref->{rep_att_orig} . $param->{joiner} . $rep_str);
+                    if ($rep_str) {
+                        $elt->set_att($zref->{rep_att}, $zref->{rep_att_orig} . $param->{joiner} . $rep_str);
+                    }
 			    }
 			    else {
 				$elt->set_att($zref->{rep_att}, $zref->{rep_att_orig} . $rep_str);
@@ -1069,6 +1071,24 @@ sub _replace_values {
 	for my $value ($self->{template}->values()) {
 		@elts = @{$value->{elts}};
         $elt_handler = undef;
+
+        # check if we need an iterator for this value
+    	if ($self->{auto_iterators} && $value->{iterator}) {
+            my ($iter_name, $iter);
+
+            $iter_name = $value->{iterator};
+
+            unless ($self->{specification}->iterator($iter_name)) {
+                if (ref($self->{values}->{$iter_name}) eq 'ARRAY') {
+                    $iter = Template::Flute::Iterator->new($self->{values}->{$iter_name});
+                }
+                else {
+                    $iter = Template::Flute::Iterator->new([]);
+                }
+
+                $self->{specification}->set_iterator($iter_name, $iter);
+            }
+        }
 
 		# determine value used for replacements
 		($raw, $rep_str) = $self->value($value);

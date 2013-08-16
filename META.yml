@@ -26,4 +26,4 @@ requires:
   Test::More: 0
   Test::Warn: 0
   XML::Twig: 0
-version: 0.0063
+version: 0.0064

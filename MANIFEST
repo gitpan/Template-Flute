@@ -51,6 +51,7 @@ t/10-include.t
 t/11-value.t
 t/12-container.t
 t/14-container-value.t
+t/15-entities.t
 t/files/component.html
 t/files/component.xml
 t/files/iso.xml
@@ -77,6 +78,7 @@ t/forms/01-name.t
 t/forms/02-link.t
 t/forms/05-textarea.t
 t/forms/06-select.t
+t/forms/checkbox.t
 t/iterators/00-load.t
 t/iterators/01-simple.t
 t/iterators/20-json.t
@@ -87,5 +89,6 @@ t/lists/params.t
 t/lists/separator.t
 t/targets/01-value.t
 t/targets/02-param.t
+t/test-twig.t
 META.yml                                 Module YAML meta-data (added by MakeMaker)
 META.json                                Module JSON meta-data (added by MakeMaker)
