@@ -15,11 +15,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0064
+Version 0.0065
 
 =cut
 
-our $VERSION = '0.0064';
+our $VERSION = '0.0065';
 
 =head1 SYNOPSIS
 
@@ -59,7 +59,7 @@ and the following specification:
 
    <specification name="example" description="Example">
         <value name="customer_name" />
-        <value name="email" field="customer_email" />
+        <value name="email" class="customer_email" />
     </specification>
 
 Processing the above as follows:
@@ -1619,6 +1619,8 @@ L<http://search.cpan.org/dist/Template-Flute/>
 
 Thanks to David Previous (bigpresh) for writing a much clearer introduction for
 Template::Flute.
+
+Thanks to Grega Pompe for a documentation fix.
 
 Thanks to Ton Verhagen for being a big supporter of my projects in all aspects.
 
