@@ -15,11 +15,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0065
+Version 0.0066
 
 =cut
 
-our $VERSION = '0.0065';
+our $VERSION = '0.0066';
 
 =head1 SYNOPSIS
 
@@ -1333,6 +1333,32 @@ is usually more convenient.
 =item i18n
 
 =back
+
+=head1 SIMPLE OPERATORS
+
+=head2 append
+
+Appends the value to the text inside a HTML element or to an attribute
+if C<target> has been specified. This can be used in C<value> and C<param>
+specification elements.
+
+The example shows how to add a HTML class to elements in a list:
+
+HTML:
+
+    <ul class="nav-sub">
+        <li class="category"><a href="" class="catname">Medicine</a></li>
+    </ul>
+
+XML:
+
+    <specification>
+        <list name="category" iterator="categories">
+            <param name="name" class="catname"/>
+            <param name="catname" field="uri" target="href"/>
+            <param name="css" class="catname" target="class" op="append" joiner=" "/>
+        </list>
+    </specification>
 
 =head1 CONDITIONALS
 
