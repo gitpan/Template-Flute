@@ -33,7 +33,6 @@ lib/Template/Flute/Iterator/JSON.pm
 lib/Template/Flute/Paginator.pm
 lib/Template/Flute/HTML.pm
 lib/Template/Flute/Utils.pm
-t/boilerplate.t
 t/manifest.t
 t/pod-coverage.t
 t/pod.t
@@ -83,11 +82,12 @@ t/iterators/00-load.t
 t/iterators/01-simple.t
 t/iterators/20-json.t
 t/iterators/paginator.t
-t/lists/alternate-classes.t
 t/lists/append.t
 t/lists/increments.t
+t/lists/object.t
 t/lists/params.t
 t/lists/separator.t
+t/object.t
 t/targets/01-value.t
 t/targets/02-param.t
 t/test-twig.t
