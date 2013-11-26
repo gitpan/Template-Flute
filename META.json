@@ -45,5 +45,13 @@
       }
    },
    "release_status" : "stable",
-   "version" : "0.0080"
+   "resources" : {
+      "bugtracker" : {
+         "web" : "https://github.com/racke/Template-Flute/issues"
+      },
+      "repository" : {
+         "url" : "https://github.com/racke/Template-Flute.git"
+      }
+   },
+   "version" : "0.0081"
 }
