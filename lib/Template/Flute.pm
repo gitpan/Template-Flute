@@ -18,11 +18,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0082
+Version 0.0090
 
 =cut
 
-our $VERSION = '0.0082';
+our $VERSION = '0.0090';
 
 =head1 SYNOPSIS
 
@@ -447,8 +447,25 @@ sub _sub_process {
 			# list is root element in the template
 			%paste_pos = (last_child => $html);
 		}
-			
-		my $records = $values->{$iterator};
+
+        my @iter_steps = split(/\./, $iterator);
+        my $iter_ref = $values;
+        my $records;
+
+        for my $step (@iter_steps) {
+            if (defined blessed $iter_ref) {
+                $records = $iter_ref->$step;
+                $iter_ref = {};
+            }
+            elsif (ref($iter_ref->{$step})) {
+                       $iter_ref = $iter_ref->{$step};
+               }
+            else {
+                $records = $iter_ref->{$step};
+                $iter_ref = {};
+            }
+        }
+
 		my $list = $template->{lists}->{$spec_name};
 		my $count = 1;
 		for my $record_values (@$records){
@@ -811,9 +828,13 @@ sub value {
             $raw_value = $ref_value;
 
             for $lookup (@{$value->{field}}) {
-                if (ref($raw_value)
-                    && exists $raw_value->{$lookup}) {
-                    $raw_value = $raw_value->{$lookup};
+                if (ref($raw_value)) {
+                    if (defined blessed $raw_value) {
+                        $raw_value = $raw_value->$lookup;
+                    }
+                    elsif (exists $raw_value->{$lookup}) {
+                        $raw_value = $raw_value->{$lookup};
+                    }
                 }
                 else {
                     $raw_value = '';
