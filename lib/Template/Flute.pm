@@ -18,11 +18,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0090
+Version 0.0091
 
 =cut
 
-our $VERSION = '0.0090';
+our $VERSION = '0.0091';
 
 =head1 SYNOPSIS
 
@@ -458,8 +458,9 @@ sub _sub_process {
                 $iter_ref = {};
             }
             elsif (ref($iter_ref->{$step})) {
-                       $iter_ref = $iter_ref->{$step};
-               }
+                $records = $iter_ref->{$step};
+                $iter_ref = $iter_ref->{$step};
+            }
             else {
                 $records = $iter_ref->{$step};
                 $iter_ref = {};
