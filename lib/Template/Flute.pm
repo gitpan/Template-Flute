@@ -18,11 +18,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0091
+Version 0.0092
 
 =cut
 
-our $VERSION = '0.0091';
+our $VERSION = '0.0092';
 
 =head1 SYNOPSIS
 
@@ -1187,6 +1187,56 @@ HTML output:
       <option value="red">Red</option>
       <option value="black" selected="selected">Black</option>
       </select>
+
+=head3 Custom iterators for dropdowns
+
+By default, the iterator for a dropdown is an arrayref of hashrefs
+with two hardcoded keys: C<value> and (optionally) C<label>. You can
+override this behaviour in the specification with
+C<iterator_value_key> and C<iterator_name_key> to use your own
+hashref's keys from the iterator, instead of C<value> and C<label>.
+
+Specification:
+
+  <specification>
+    <value name="color" iterator="colors"
+           iterator_value_key="code" iterator_name_key="name"/>
+  </specification>
+
+Template:
+
+  <html>
+   <select class="color">
+   <option value="example">Example</option>
+   </select>
+  </html>
+
+Code:
+
+  @colors = ({code => 'red', name => 'Red'},
+             {code => 'black', name => 'Black'},
+            );
+  
+  $flute = Template::Flute->new(template => $html,
+                                specification => $spec,
+                                iterators => {colors => \@colors},
+                                values => { color => 'black' },
+                               );
+  
+  $out = $flute->process();
+
+Output:
+
+  <html>
+   <head></head>
+   <body>
+    <select class="color">
+     <option value="red">Red</option>
+     <option selected="selected" value="black">Black</option>
+    </select>
+   </body>
+  </html>
+
 
 =head1 LISTS
 

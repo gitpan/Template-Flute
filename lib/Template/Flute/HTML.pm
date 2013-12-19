@@ -12,6 +12,7 @@ use Template::Flute::Increment;
 use Template::Flute::Container;
 use Template::Flute::List;
 use Template::Flute::Form;
+use Scalar::Util qw/blessed/;
 
 =head1 NAME
 
@@ -647,22 +648,58 @@ sub _set_selected {
 		
 		$elt->cut_children($cond);
 		
+        # determine where to look for labels and values in the iterator
+        my $value_k = "value";
+        my $label_k = "label";
+        if (exists $sob->{iterator_value_key} && $sob->{iterator_value_key}) {
+            $value_k = $sob->{iterator_value_key};
+        }
+        if (exists $sob->{iterator_name_key} && $sob->{iterator_name_key}) {
+            $label_k = $sob->{iterator_name_key};
+        }
+
 		# get options from iterator		
 		$iter->reset();
 		while ($optref = $iter->next()) {
-			my (%att, $text);
-			
-			if (exists $optref->{label}) {
-				$text = $optref->{label};
-				$att{value} = $optref->{value};
-			}
-			else {
-				$text = $optref->{value};
-			}
 
-			if (defined $value && $optref->{value} eq $value) {
-				$att{selected} = 'selected';
-			}
+            # check the record if is an object
+            my $is_an_object = blessed($optref);
+
+			my (%att, $text);
+            my ($record_value, $record_label);
+
+            if ($is_an_object) {
+                # here we could also peek inside the object, but hey,
+                # if it's an object the correct practise is not to
+                # look inside it.
+                if ($optref->can("$value_k")) {
+                    $record_value = $optref->$value_k;
+                }
+                if ($optref->can("$label_k")) {
+                    $record_label = $optref->$label_k;
+                }
+            }
+            else {
+                if (exists $optref->{$value_k}) {
+                    $record_value = $optref->{$value_k};
+                }
+                if (exists $optref->{$label_k}) {
+                    $record_label = $optref->{$label_k};
+                }
+            }
+
+            if (defined $record_label) {
+                $text = $record_label;
+                $att{value} = $record_value;
+            }
+            else {
+                $text = $record_value;
+            }
+            if (defined $value and
+                defined $record_value and
+                $record_value eq $value) {
+                $att{selected} = 'selected';
+            }
 			
 			$elt->insert_new_elt('last_child', 'option',
 									 \%att, $text);
