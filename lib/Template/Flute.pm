@@ -18,11 +18,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0092
+Version 0.0093
 
 =cut
 
-our $VERSION = '0.0092';
+our $VERSION = '0.0093';
 
 =head1 SYNOPSIS
 
@@ -421,9 +421,6 @@ sub _sub_process {
 		push @{$spec_elements->{$type}}, $elt;
 		
 	}	
-	
-	## Replace values
-		
 	# List
 	for my $elt ( @{$spec_elements->{list}}, @{$spec_elements->{form}} ){
 		my $spec_name = $elt->{'att'}->{'name'};
@@ -524,7 +521,24 @@ sub _sub_process {
 		}
 		
 		for my $spec_class (@$spec_clases){
-			
+            # check if we need an iterator for this element
+            if ($self->{auto_iterators} && $spec_class->{iterator}) {
+                my ($iter_name, $iter);
+
+                $iter_name = $spec_class->{iterator};
+
+                unless ($specification->iterator($iter_name)) {
+                    if (ref($self->{values}->{$iter_name}) eq 'ARRAY') {
+                        $iter = Template::Flute::Iterator->new($self->{values}->{$iter_name});
+                    }
+                    else {
+                        $iter = Template::Flute::Iterator->new([]);
+                    }
+
+                    $specification->set_iterator($iter_name, $iter);
+                }
+            }
+
 			# Increment count
 			$spec_class->{increment} = new Template::Flute::Increment(
 				increment => $spec_class->{increment}->{increment},
