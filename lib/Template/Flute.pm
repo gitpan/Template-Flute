@@ -18,11 +18,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0093
+Version 0.0094
 
 =cut
 
-our $VERSION = '0.0093';
+our $VERSION = '0.0094';
 
 =head1 SYNOPSIS
 
@@ -390,14 +390,15 @@ sub process {
 		$self->{'values'},
 		$self->{specification},
 		$self->{template}, 
-		
+        0,
+        0,
 		);
 	my $shtml = $html->sprint;
 	return $shtml;
 }
 
 sub _sub_process {
-	my ($self, $html, $spec_xml,  $values, $spec, $root_template, $count) = @_;
+	my ($self, $html, $spec_xml,  $values, $spec, $root_template, $count, $level) = @_;
 	my ($template);
 	# Use root spec or sub-spec
 	my $specification = $spec || $self->_bootstrap_specification(string => "<specification>".$spec_xml->sprint."</specification>", 1);
@@ -411,18 +412,27 @@ sub _sub_process {
 	}
 	
 	my $classes = $specification->{classes};
-	my ($dbobj, $iter, $sth, $row, $lel, %paste_pos, $query);
+	my ($dbobj, $iter, $sth, $row, $lel, %paste_pos, $query, %skip);
 	
 	# Read one layer of spec
 	my $spec_elements = {};
 	for my $elt ( $spec_xml->descendants() ){
 		my $type = $elt->tag;
 		$spec_elements->{$type} ||= [];
+
+        # check whether to skip sublists on this level
+        if ($type eq 'list' && $elt->parent->tag eq 'list') {
+            if ($elt->parent ne $spec_xml) {
+                $skip{$elt} = 1;
+            }
+        }
 		push @{$spec_elements->{$type}}, $elt;
 		
 	}	
 	# List
-	for my $elt ( @{$spec_elements->{list}}, @{$spec_elements->{form}} ){
+	for my $elt ( @{$spec_elements->{list}}, @{$spec_elements->{form}} ) {
+        next if exists $skip{$elt};
+
 		my $spec_name = $elt->{'att'}->{'name'};
 		my $spec_class = $elt->{'att'}->{'class'} ? $elt->{'att'}->{'class'} : $spec_name;
 		my $sep_copy;
@@ -469,7 +479,7 @@ sub _sub_process {
 		for my $record_values (@$records){
 			
 			my $element = $element_template->copy();
-			$element = $self->_sub_process($element, $sub_spec, $record_values, undef, undef, $count);
+			$element = $self->_sub_process($element, $sub_spec, $record_values, undef, undef, $count, $level + 1);
 			
 			# Get rid of flutexml container and put it into position
 			for my $e (reverse($element->cut_children())) {
@@ -504,6 +514,15 @@ sub _sub_process {
 		
 	# Values
 	for my $elt ( @{$spec_elements->{value}}, @{$spec_elements->{param}}, @{$spec_elements->{field}} ){	
+        if ($elt->tag eq 'param') {
+            my $name = $spec_xml->att('name');
+
+            if (defined $name && $name ne $elt->parent->att('name')) {
+                # don't process params of sublists again
+                next;
+            }
+        }
+
 		my $spec_id = $elt->{'att'}->{'id'};
 		my $spec_name = $elt->{'att'}->{'name'};
 		my $spec_class = $elt->{'att'}->{'class'} ? $elt->{'att'}->{'class'} : $spec_name;
