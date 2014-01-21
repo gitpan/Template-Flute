@@ -18,11 +18,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0094
+Version 0.0095
 
 =cut
 
-our $VERSION = '0.0094';
+our $VERSION = '0.0095';
 
 =head1 SYNOPSIS
 
@@ -430,7 +430,7 @@ sub _sub_process {
 		
 	}	
 	# List
-	for my $elt ( @{$spec_elements->{list}}, @{$spec_elements->{form}} ) {
+	for my $elt ( @{$spec_elements->{list}} ) {
         next if exists $skip{$elt};
 
 		my $spec_name = $elt->{'att'}->{'name'};
@@ -1470,7 +1470,7 @@ a request from Matt S. Trout, author of the L<HTML::Zoom> module.
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2010-2013 Stefan Hornburg (Racke) <racke@linuxia.de>.
+Copyright 2010-2014 Stefan Hornburg (Racke) <racke@linuxia.de>.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
