@@ -40,6 +40,7 @@
             "Test::Fatal" : "0",
             "Test::More" : "0",
             "Test::Warn" : "0",
+            "Test::Warnings" : "0",
             "XML::Twig" : "0"
          }
       }
@@ -53,5 +54,5 @@
          "url" : "https://github.com/racke/Template-Flute.git"
       }
    },
-   "version" : "0.0095"
+   "version" : "0.0096"
 }
