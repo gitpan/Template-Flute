@@ -18,11 +18,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0096
+Version 0.0097
 
 =cut
 
-our $VERSION = '0.0096';
+our $VERSION = '0.0097';
 
 =head1 SYNOPSIS
 
@@ -648,7 +648,14 @@ sub _replace_within_elts {
 			    	my $rep_str_appended = $rep_str ? ($zref->{rep_att_orig} . $rep_str) : $zref->{rep_att_orig};
 					$elt->set_att($zref->{rep_att}, $rep_str_appended);
 			    }
-			
+
+            } elsif (exists $param->{op} && $param->{op} eq 'toggle') {
+                if ($rep_str) {
+                    $elt->set_att($zref->{rep_att});
+                }
+                else {
+                    $elt->del_att($zref->{rep_att});
+                }
 			} else {
 				if (defined $rep_str){
 					$elt->set_att($zref->{rep_att}, $rep_str);
@@ -694,7 +701,7 @@ sub _replace_record {
 		$raw = $rep_str;
 		
 		if (exists $value->{op}) {
-            if ($value->{op} eq 'toggle') {
+            if ($value->{op} eq 'toggle' && ! $value->{target}) {
                 if (exists $value->{args} && $value->{args} eq 'static') {
                     if ($rep_str) {
                         # preserve static text, like a container
@@ -1008,7 +1015,8 @@ Appends the param value to the text found in the HTML template.
 
 =item toggle
 
-Only shows corresponding HTML element if param value is set.
+Without target attribute, it only shows corresponding HTML element if param value is set.
+Wiht target attribute, it simply toggles the target attribute.
 
 =back
 
