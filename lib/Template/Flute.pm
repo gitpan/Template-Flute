@@ -18,11 +18,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0098
+Version 0.0099
 
 =cut
 
-our $VERSION = '0.0098';
+our $VERSION = '0.0099';
 
 =head1 SYNOPSIS
 
@@ -854,6 +854,7 @@ sub value {
 		# process template and include it
 		%args = (template_file => $include_file,
 			 auto_iterators => $self->{auto_iterators},
+			 i18n => $self->{i18n},
              filters => $self->{filters},
 			 values => $value->{field} ? $self->{values}->{$value->{field}} : $self->{values});
 		
