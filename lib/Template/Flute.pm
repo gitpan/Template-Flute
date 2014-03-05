@@ -18,11 +18,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0101
+Version 0.0102
 
 =cut
 
-our $VERSION = '0.0101';
+our $VERSION = '0.0102';
 
 =head1 SYNOPSIS
 
@@ -537,6 +537,11 @@ sub _sub_process {
 		}
 		
 		for my $spec_class (@$spec_clases){
+            # check if it's a form and it's already filled
+            if (exists $spec_class->{form} && $spec_class->{form}) {
+                my $form = $self->template->form($spec_class->{form});
+                next if $form->is_filled;
+            }
             # check if we need an iterator for this element
             if ($self->{auto_iterators} && $spec_class->{iterator}) {
                 my ($iter_name, $iter);
