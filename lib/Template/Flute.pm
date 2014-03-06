@@ -18,11 +18,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0102
+Version 0.0103
 
 =cut
 
-our $VERSION = '0.0102';
+our $VERSION = '0.0103';
 
 =head1 SYNOPSIS
 
@@ -429,6 +429,19 @@ sub _sub_process {
 		push @{$spec_elements->{$type}}, $elt;
 		
 	}	
+
+    # cut the elts in the template, *before* processing the lists
+    if ($level == 0) {
+        for my $container ($template->containers()) {
+            $container->set_values($values) if $values;
+            unless ($container->visible()) {
+                for my $elt (@{$container->elts()}) {
+                    $elt->cut();
+                }
+            }
+        }
+    }
+
 	# List
 	for my $elt ( @{$spec_elements->{list}} ) {
         next if exists $skip{$elt};
@@ -569,17 +582,17 @@ sub _sub_process {
 			$self->_replace_record($spec_name, $values, $spec_class, $spec_class->{elts});
 		}
 	}
-  	
-	
-	for my $container ($template->containers()) {
-		$container->set_values($values) if $values;
-		
-		unless ($container->visible()) {
-		    for my $elt (@{$container->elts()}) {
-			$elt->cut();
-		    }
-		}
-	}
+
+    # cut again the invisible containers, after the values are interpolated
+    if ($level == 0) {
+        for my $container ($template->containers()) {
+            unless ($container->visible()) {
+                for my $elt (@{$container->elts()}) {
+                    $elt->cut();
+                }
+            }
+        }
+    }
 
 	return $count ? $template->{xml}->root() : $template->{xml};	
 }
