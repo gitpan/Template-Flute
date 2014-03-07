@@ -18,11 +18,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0103
+Version 0.0104
 
 =cut
 
-our $VERSION = '0.0103';
+our $VERSION = '0.0104';
 
 =head1 SYNOPSIS
 
@@ -37,6 +37,9 @@ our $VERSION = '0.0103';
                            template_file => 'cart.html',
                            iterators => {cart => $cart},
                            values => \%values,
+                           autodetect => {
+                                          disable => [qw/Foo::Bar/],
+                                         }
                            );
 
     print $flute->process();
@@ -205,6 +208,29 @@ Hash reference of values to be used by the process method.
 =item auto_iterators
 
 Builds iterators automatically from values.
+
+=item autodetect
+
+A configuration option. It should be an hashref with a key C<disable>
+and a value with an arrayref with a list of B<classes> for objects
+which should be considered plain hashrefs instead. Example:
+
+  my $flute = Template::Flute->new(....
+                                   autodetect => { disable => [qw/My::Object/] },
+                                   ....
+                                  );
+
+Doing so, if you pass a value holding a C<My::Object> object, and you have a specification with something like this:
+
+  <specification>
+   <value name="name" field="object.method"/>
+  </specification>
+
+The value will be C<$object->{method}>, not C<$object->$method>.
+
+The object is checked with C<isa>.
+
+Classical example: C<Dancer::Session::Abstract>.
 
 =back
 
@@ -399,7 +425,7 @@ sub process {
 
 sub _sub_process {
 	my ($self, $html, $spec_xml,  $values, $spec, $root_template, $count, $level) = @_;
-	my ($template);
+	my ($template, %list_active);
 	# Use root spec or sub-spec
 	my $specification = $spec || $self->_bootstrap_specification(string => "<specification>".$spec_xml->sprint."</specification>", 1);
 	
@@ -489,6 +515,14 @@ sub _sub_process {
 
 		my $list = $template->{lists}->{$spec_name};
 		my $count = 1;
+
+        if ($records) {
+            $list_active{$spec_name} = 1;
+        }
+        else {
+            $list_active{$spec_name} = 0;
+        }
+
 		for my $record_values (@$records){
 			my $element = $element_template->copy();
 			$element = $self->_sub_process($element, $sub_spec, $record_values, undef, undef, $count, $level + 1);
@@ -529,13 +563,18 @@ sub _sub_process {
 	for my $elt ( @{$spec_elements->{value}}, @{$spec_elements->{param}}, @{$spec_elements->{field}} ){	
         if ($elt->tag eq 'param') {
             my $name = $spec_xml->att('name');
+            my $parent_name = $elt->parent->att('name');
 
-            if (defined $name && $name ne $elt->parent->att('name')) {
+            if (defined $name && $name ne $parent_name) {
                 # don't process params of sublists again
                 next;
             }
-        }
 
+            if (exists $list_active{$parent_name} && ! $list_active{$parent_name}) {
+                # don't process params for empty lists
+                 next;
+            }
+        }
 		my $spec_id = $elt->{'att'}->{'id'};
 		my $spec_name = $elt->{'att'}->{'name'};
 		my $spec_class = $elt->{'att'}->{'class'} ? $elt->{'att'}->{'class'} : $spec_name;
@@ -847,10 +886,9 @@ Returns the value for NAME.
 sub value {
 	my ($self, $value, $values) = @_;
 	my ($raw_value, $ref_value, $rep_str, $record_is_object, $key);
-
 	$ref_value = $values;
-	$record_is_object = defined blessed $ref_value;
-	
+	$record_is_object = $self->_is_record_object($ref_value);
+
 	if ($self->{scopes}) {
 		if (exists $value->{scope}) {
 			$ref_value = $self->{values}->{$value->{scope}};
@@ -886,7 +924,7 @@ sub value {
 
             for $lookup (@{$value->{field}}) {
                 if (ref($raw_value)) {
-                    if (defined blessed $raw_value) {
+                    if ($self->_is_record_object($raw_value)) {
                         $raw_value = $raw_value->$lookup;
                     }
                     elsif (exists $raw_value->{$lookup}) {
@@ -927,6 +965,38 @@ sub value {
 	
 	return $rep_str;
 }
+
+# internal helpers
+
+sub _is_record_object {
+    my ($self, $record) = @_;
+    my $class = blessed($record);
+    return unless defined $class;
+
+    # it's an object. Check if we have it in the blacklist
+    my @ignores = $self->_autodetect_ignores;
+    my $is_good_object = 1;
+    foreach my $i (@ignores) {
+        if ($record->isa($i)) {
+            $is_good_object = 0;
+            last;
+        }
+    }
+    return $is_good_object;
+}
+
+sub _autodetect_ignores {
+    my $self = shift;
+    my @ignores;
+    if (exists $self->{autodetect} and exists $self->{autodetect}->{disable}) {
+        @ignores = @{ $self->{autodetect}->{disable} };
+    }
+    foreach my $f (@ignores) {
+        die "empty string in the disabled autodetections" unless length($f);
+    }
+    return @ignores;
+}
+
 
 =head2 set_values HASHREF
 
