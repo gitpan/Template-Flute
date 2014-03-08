@@ -18,11 +18,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0104
+Version 0.0105
 
 =cut
 
-our $VERSION = '0.0104';
+our $VERSION = '0.0105';
 
 =head1 SYNOPSIS
 
@@ -1379,6 +1379,63 @@ addressed in this way.
 
 See L<Template::Flute::List> for details about lists.
 
+=head1 OBJECTS AND STRUCTURES
+
+You can pass objects and hashrefs as values. To access a key or an
+accessor, you have to use a dotted notation with C<field>. An example
+for both hashrefs and objects follows.
+
+Specification:
+
+  <specification>
+   <value name="object" field="myobject.method" />
+   <value name="struct" field="mystruct.key" />
+  </specification>
+
+
+HTML:
+
+  <html>
+    <body>
+      <span class="object">Welcome back!</span>
+      <span class="struct">Another one</span>
+    </body>
+  </html>
+
+
+Code:
+
+  package My::Object;
+  sub new {
+      my $class = shift;
+      bless {}, $class;
+  }
+  sub method {
+      return "Hello from the method";
+  }
+  package main;
+  my $flute = Template::Flute->new(
+      specification => $spec,
+      template => $html,
+      values => {
+          myobject => My::Object->new,
+          mystruct => { key => "Hello from hash" },
+         }
+     );
+
+C<process> will return:
+
+  <html>
+    <head></head>
+    <body>
+      <span class="object">Hello from the method</span>
+      <span class="struct">Hello from hash</span>
+    </body>
+  </html>
+
+Sometimes you need to treat an object like an hashref. How to do that
+is explained under the C<autodetect> option for the constructor.
+
 =head1 FORMS
 
 Forms can be accessed after parsing the specification and the HTML template
@@ -1514,8 +1571,7 @@ Stefan Hornburg (Racke), <racke@linuxia.de>
 
 =head1 BUGS
 
-Please report any bugs or feature requests to C<bug-template-flute at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Template-Flute>.
+Please report any bugs or feature requests at L<https://github.com/racke/Template-Flute/issues>.
 
 =head1 SUPPORT
 
@@ -1526,10 +1582,6 @@ You can find documentation for this module with the perldoc command.
 You can also look for information at:
 
 =over 4
-
-=item * RT: CPAN's request tracker
-
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Template-Flute>
 
 =item * AnnoCPAN: Annotated CPAN documentation
 

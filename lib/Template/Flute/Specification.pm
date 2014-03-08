@@ -571,22 +571,23 @@ sub list_paging {
 =head2 dangling
 
 Method to check if the template is consistent with the specification.
-The method retrieve the list of ids, classes and names, and check if
-there are twigs attached.
+The method retrieves the list of ids, classes and names, and check if
+there are template elements attached.
 
-For each element without twigs attached, return an hashref with
-name, type and a dump of the element.
+For each specification element without template elements attached,
+it produces a hash reference with the name, type and a dump of the element.
 
-It returns a list of hashref, so you can check the template with
+It returns a list of these hash references, so you can check the template with
 
-my $flute = Template::Flute->new(....);
-my @bad_elts = $flute->specification->dangling;
-if (@bad_elts) {
-    warn "empty elements" . Dumper(\@bad_elts);
-}
-else {
-    print "all ok\n";
-}
+    my $flute = Template::Flute->new(....);
+    my @bad_elts = $flute->specification->dangling;
+
+    if (@bad_elts) {
+        warn "empty elements" . Dumper(\@bad_elts);
+    }
+    else {
+        print "all ok\n";
+    }
 
 Each hashref returned has the following keys set:
 
@@ -636,7 +637,7 @@ sub dangling {
                         push @empty, {
                                       type => $internal,
                                       name => $struct,
-                                      dump => join(' ', %$el),
+                                      dump => $el,
                                      }
                     }
                 }
@@ -652,8 +653,7 @@ Stefan Hornburg (Racke), C<< <racke at linuxia.de> >>
 
 =head1 BUGS
 
-Please report any bugs or feature requests to C<bug-template-flute at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Template-Flute>.
+Please report any bugs or feature requests at L<https://github.com/racke/Template-Flute/issues>.
 
 =head1 LICENSE AND COPYRIGHT
 

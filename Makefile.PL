@@ -12,6 +12,7 @@ WriteMakefile(
       : ()),
     PL_FILES            => {},
     PREREQ_PM => {
+        'Test::Deep' => 0,
         'Test::More' => 0,
         'Test::Warn' => 0,
         'Test::Warnings' => 0,
@@ -23,6 +24,7 @@ WriteMakefile(
         'Moo' => 0,
         'Scalar::Util' => 0,
     },
+    EXE_FILES => [ 'scripts/flute' ],
     META_MERGE        => {
         resources => {
             repository  => 'https://github.com/racke/Template-Flute.git',
