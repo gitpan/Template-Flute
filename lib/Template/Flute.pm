@@ -18,11 +18,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0105
+Version 0.0106
 
 =cut
 
-our $VERSION = '0.0105';
+our $VERSION = '0.0106';
 
 =head1 SYNOPSIS
 
@@ -232,6 +232,11 @@ The object is checked with C<isa>.
 
 Classical example: C<Dancer::Session::Abstract>.
 
+=item uri
+
+Base URI for your template. This adjusts the links in the HTML tags
+C<a>, C<base>, C<img>, C<link> and C<script>.
+
 =back
 
 =cut
@@ -368,7 +373,7 @@ sub _bootstrap_template {
 	my ($self, $source, $template, $snippet) = @_;
 	my ($template_object);
 
-	$template_object = new Template::Flute::HTML;
+	$template_object = new Template::Flute::HTML(uri => $self->{uri});
 	
 	if ($source eq 'file') {
 		$template_object->parse_file($template, $self->{specification}, $snippet);
@@ -592,7 +597,7 @@ sub _sub_process {
             # check if it's a form and it's already filled
             if (exists $spec_class->{form} && $spec_class->{form}) {
                 my $form = $self->template->form($spec_class->{form});
-                next if $form->is_filled;
+                next if $form && $form->is_filled;
             }
             # check if we need an iterator for this element
             if ($self->{auto_iterators} && $spec_class->{iterator}) {
@@ -912,7 +917,9 @@ sub value {
 			 auto_iterators => $self->{auto_iterators},
 			 i18n => $self->{i18n},
              filters => $self->{filters},
-			 values => $value->{field} ? $self->{values}->{$value->{field}} : $self->{values});
+			 values => $value->{field} ? $self->{values}->{$value->{field}} : $self->{values},
+                 uri => $self->{uri},
+         );
 		
 		$raw_value = Template::Flute->new(%args)->process();
 	}
