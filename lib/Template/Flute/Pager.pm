@@ -1,15 +1,14 @@
-package Template::Flute::Paginator;
+package Template::Flute::Pager;
 
 use strict;
 use warnings;
 
 use Moo;
 use Sub::Quote;
-use Template::Flute::Iterator;
 
 =head1 NAME
 
-Template::Flute::Paginator - Generic paginator class for Template::Flute
+Template::Flute::Pager - Data::Pager class for Template::Flute
 
 =head1 SYNOPSIS
 
@@ -36,7 +35,7 @@ Template::Flute::Paginator - Generic paginator class for Template::Flute
 has iterator => (
     is => 'rw',
     lazy => 1,
-    default => quote_sub q{return Template::Flute::Iterator->new;},
+#    default => quote_sub q{return Data::Pager->new;},
 );
 
 has page_size => (
@@ -63,7 +62,7 @@ sub pages {
     my $self = shift;
     my ($count, $pages);
 
-    $count = $self->iterator->count;
+    $count = $self->iterator->total_entries;
 
     if ($self->page_size > 0) {
         $pages = int($count / $self->page_size);
@@ -90,11 +89,7 @@ Returns current page, starting from 1.
 sub current_page {
     my $self = shift;
 
-    unless (exists $self->{current_page}) {
-        $self->{current_page} = 1;
-    }
-
-    return $self->{current_page};
+    $self->iterator->current_page;
 }
 
 =head2 select_page {
@@ -107,16 +102,7 @@ sub select_page {
     my ($self, $page) = @_;
     my ($new_position, $distance);
 
-    # calculate number of entries
-    $new_position = ($page  - 1) * $self->page_size;
-
-    $distance = $new_position - $self->page_position + $page - 2;
-
-    if ($distance > 1) {
-        for (0 .. $distance) {
-            $self->next;
-        }
-    }
+    $self->iterator->current_page($page);
 }
 
 =head2 position_first
@@ -194,20 +180,6 @@ sub seed {
     my ($self, $data) = @_;
 
     $self->iterator->seed($data);
-}
-
-sub BUILDARGS {
-    my ($class, @args) = @_;
-    my ($iter, $data);
-
-    if (ref($args[0]) eq 'ARRAY') {
-        # create iterator
-        $data = shift @args;
-        $iter = Template::Flute::Iterator->new($data);
-        unshift @args, iterator => $iter;
-    }
-
-    return {@args};
 }
 
 =head1 AUTHOR
