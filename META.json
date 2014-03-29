@@ -4,7 +4,7 @@
       "Stefan Hornburg (Racke) <racke@linuxia.de>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "ExtUtils::MakeMaker version 6.88, CPAN::Meta::Converter version 2.133380",
+   "generated_by" : "ExtUtils::MakeMaker version 6.94, CPAN::Meta::Converter version 2.140640",
    "license" : [
       "perl_5"
    ],
@@ -36,6 +36,7 @@
       },
       "runtime" : {
          "requires" : {
+            "Data::Transpose" : "0.0009",
             "File::Slurp" : "0",
             "HTML::TreeBuilder" : "0",
             "Moo" : "1.001",
@@ -55,5 +56,5 @@
          "url" : "https://github.com/racke/Template-Flute.git"
       }
    },
-   "version" : "0.0109"
+   "version" : "0.0110"
 }
