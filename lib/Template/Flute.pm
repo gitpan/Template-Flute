@@ -19,11 +19,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0110
+Version 0.0111
 
 =cut
 
-our $VERSION = '0.0110';
+our $VERSION = '0.0111';
 
 =head1 SYNOPSIS
 
@@ -927,6 +927,10 @@ sub _paging {
                 for my $sf (@{$element->{elts}}) {
                     $sf->cut;
                 }
+            }
+	    else {
+		# skip processing of paging elements which aren't specified
+		next;
             }
 
             if ($element_orig->is_last_child()) {
