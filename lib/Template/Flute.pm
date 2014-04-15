@@ -19,11 +19,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0112
+Version 0.0113
 
 =cut
 
-our $VERSION = '0.0112';
+our $VERSION = '0.0113';
 
 =head1 SYNOPSIS
 
@@ -238,6 +238,21 @@ Classical example: C<Dancer::Session::Abstract>.
 Base URI for your template. This adjusts the links in the HTML tags
 C<a>, C<base>, C<img>, C<link> and C<script>.
 
+=item email_cids
+
+This is meant to be used on HTML emails. When this is set to an hash
+reference (which should be empty), the hash will be populated with the
+following values:
+
+  cid1 => { filename => 'foo.png' },
+  cid2 => { filename => 'foo2.gif' },
+
+and in the body the images C<src> attribute will be replaced with
+C<cid:cid1>.
+
+The cid names are arbitrary and assigned by the template. The code
+should look at the reference values which were modified.
+
 =back
 
 =cut
@@ -374,7 +389,8 @@ sub _bootstrap_template {
 	my ($self, $source, $template, $snippet) = @_;
 	my ($template_object);
 
-	$template_object = new Template::Flute::HTML(uri => $self->{uri});
+	$template_object = new Template::Flute::HTML(uri => $self->{uri},
+                                                 email_cids => $self->{email_cids});
 	
 	if ($source eq 'file') {
 		$template_object->parse_file($template, $self->{specification}, $snippet);
@@ -1102,6 +1118,7 @@ sub value {
              filters => $self->{filters},
 			 values => $value->{field} ? $self->{values}->{$value->{field}} : $self->{values},
                  uri => $self->{uri},
+                 email_cids => $self->{email_cids},
          );
 		
 		$raw_value = Template::Flute->new(%args)->process();
@@ -1291,8 +1308,17 @@ Appends the param value to the text found in the HTML template.
 
 =item toggle
 
-Without target attribute, it only shows corresponding HTML element if param value is set.
-Wiht target attribute, it simply toggles the target attribute.
+When the C<args> attribute is set to C<tree>, it doesn't interpolate
+anything and just shows corresponding HTML element if param value is
+set.
+
+With C<target> attribute, it simply toggles the target attribute.
+
+Otherwise, if value is true, shows the HTML element and set its
+content to the value. If value is false, removes the HTML element.
+
+So, if your element has children elements, you probably want to use
+the C<args="tree"> attribute (see below for an example).
 
 =back
 
