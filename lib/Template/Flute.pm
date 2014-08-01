@@ -19,11 +19,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0121
+Version 0.0122
 
 =cut
 
-our $VERSION = '0.0121';
+our $VERSION = '0.0122';
 
 =head1 SYNOPSIS
 
@@ -623,7 +623,13 @@ sub _sub_process {
 
 			my $element = $element_template->copy();
 
+            # make sure that we save and restore specification object
+            # otherwise it would be overwritten and can cause weird
+            # errors (GH #54)
+
+            my $old_spec = $self->{specification};
 			$element = $self->_sub_process($element, $sub_spec, $record_values, undef, undef, $count, $level + 1);
+            $self->{specification} = $old_spec;
 
 			# Get rid of flutexml container and put it into position
 			my $current;
@@ -1707,6 +1713,36 @@ Code:
                               specification => $spec,
                               iterators => {colors => \@colors},
                               values => {color => 'black'},
+                             );
+
+HTML output:
+
+      <select class="color">
+      <option value="red">Red</option>
+      <option value="black" selected="selected">Black</option>
+      </select>
+
+=head3 Default value for dropdowns
+
+You can specify the dropdown item which is selected by
+default with the C<iterator_default>) attribute.
+
+Template:
+
+    <select class="color"></select>
+
+Specification:
+
+    <value name="color" iterator="colors" iterator_default="black"/>
+
+Code:
+
+    @colors = ({value => 'red', label => 'Red'},
+               {value => 'black', label => 'Black'});
+
+    $flute = Template::Flute->new(template => $html,
+                              specification => $spec,
+                              iterators => {colors => \@colors},
                              );
 
 HTML output:
