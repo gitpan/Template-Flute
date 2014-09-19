@@ -8,7 +8,7 @@ use Sub::Quote;
 
 =head1 NAME
 
-Template::Flute::Pager - Data::Pager class for Template::Flute
+Template::Flute::Pager - Data::Page class for Template::Flute
 
 =head1 SYNOPSIS
 
@@ -162,7 +162,7 @@ sub next {
     if ($self->page_size > 0) {
         if ($self->page_position < $self->page_size) {
             $self->{page_position}++;
-            return $self->iterator->next;
+            return $self->iterator->next_page;
         }
         else {
             # advance current page
@@ -185,7 +185,19 @@ Returns number of records.
 sub count {
     my $self = shift;
 
-    $self->iterator->count;
+    $self->iterator->total_entries;
+}
+
+=head2 reset
+
+Resets iterator.
+
+=cut
+
+sub reset {
+    my $self = shift;
+
+    $self->iterator->current_page(1);
 }
 
 =head2 seed
