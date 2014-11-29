@@ -19,11 +19,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0140
+Version 0.0150
 
 =cut
 
-our $VERSION = '0.0140';
+our $VERSION = '0.0150';
 
 =head1 SYNOPSIS
 
@@ -567,11 +567,29 @@ sub _sub_process {
 		
 	}	
 
+    my $cut_container = 0;
+
     # cut the elts in the template, *before* processing the lists
     if ($level == 0) {
         for my $container ($template->containers()) {
+            next if $container->list;
+
             $container->set_values($values) if $values;
             unless ($container->visible()) {
+                for my $elt (@{$container->elts()}) {
+                    $elt->cut();
+                }
+            }
+        }
+    }
+    elsif ($spec_xml->gi eq 'list') {
+        # we check whether the container is a child of this list
+        for my $container ($template->containers()) {
+            next if $container->list ne $spec_xml->att('name');
+
+            $container->set_values($values) if $values;
+            unless ($container->visible()) {
+                $cut_container = 1;
                 for my $elt (@{$container->elts()}) {
                     $elt->cut();
                 }
@@ -745,9 +763,20 @@ sub _sub_process {
 	for my $elt ( @{$spec_elements->{value}}, @{$spec_elements->{param}}, @{$spec_elements->{field}} ){	
         if ($elt->tag eq 'param') {
             my $name = $spec_xml->att('name');
-            my $parent_name = $elt->parent->att('name');
 
-            if (! defined $name || $name ne $parent_name) {
+            # skip params on top level
+            next unless defined $name;
+
+            my $parent_name;
+            if ($elt->parent->gi eq 'container') {
+                next if $cut_container;
+                $parent_name = $name;
+            }
+            else {
+                $parent_name = $elt->parent->att('name');
+            }
+
+            if ($name ne $parent_name) {
                 # don't process params of sublists again
                 next;
             }
@@ -810,7 +839,13 @@ sub _sub_process {
 				increment => $spec_class->{increment}->{increment},
 				start => $count
 			) if $spec_class->{increment};
-			
+
+            my $field = $spec_class->{'field'};
+
+            if (defined $field && ! ref($field) && $field =~ /\./) {
+                $spec_class->{'field'} = [split /\./, $field];
+            }
+
 			$self->_replace_record($spec_name, $values, $spec_class, $spec_class->{elts});
 		}
 	}
@@ -1500,6 +1535,45 @@ L<Template::Flute::Specification::XML> module. You can use the Config::Scoped
 format implemented by L<Template::Flute::Specification::Scoped> module or
 write your own specification parser class.
 
+=head2 COMMON ATTRIBUTES
+
+Common attributes for specification elements are:
+
+=over 4
+
+=item name
+
+Name of element.
+
+    <value name="dancefloor"/>
+
+=item class
+
+Class of corresponding elements in the HTML template.
+
+    <value name="dancefloor" class="dancefloor-link"/>
+
+If this attribute is omitted, the value of the name attribute
+is used to relate to the class in the HTML template.
+
+=item id
+
+Id of corresponding element in the HTML template. Overrides
+the class attribute for the specification element.
+
+   <value name="dancefloor" id="dancefloor-link"/>
+
+=item target
+
+HTML attribute to fill the value instead of replacing the body of
+the HTML element.
+
+   <value name="dancefloor" class="dancefloor-link" target="href"/>
+
+=back
+
+=head2 ELEMENTS
+
 Possible elements in the specification are:
 
 =over 4
@@ -1755,7 +1829,9 @@ XML:
         </list>
     </specification>
 
-=head1 CONDITIONALS
+=head1 CONTAINERS
+
+Conditional processing like C<IF> or C<ELSE> is done with the help of containers.
 
 =head2 Display image only if present
 
@@ -1800,7 +1876,7 @@ XML:
         <list name="links" class="linklist" iterator="links">
             <param name="name"/>
             <param name="url" target="href"/>
-            <param name="link" field="url" op="toggle" args="tree"/>
+            <container name="link" class="link" value="url"/>
         </list>
     </specification>
 
