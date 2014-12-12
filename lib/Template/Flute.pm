@@ -19,11 +19,11 @@ Template::Flute - Modern designer-friendly HTML templating Engine
 
 =head1 VERSION
 
-Version 0.0150
+Version 0.0151
 
 =cut
 
-our $VERSION = '0.0150';
+our $VERSION = '0.0151';
 
 =head1 SYNOPSIS
 
@@ -957,19 +957,10 @@ sub _replace_record {
 		$rep_str = $self->value($value, $values);
 		#return undef if ((not defined $rep_str) and (defined $value->{target}));
 		$raw = $rep_str;
-		
-        if (my $skiptype = $value->{skip}) {
-        # placeholder for future options
-            if ($skiptype eq 'empty') {
-                if (!defined($rep_str) or
-                    $rep_str =~ m/^\s*$/s) {
-                    # do nothing
-                    return;
-                }
-            } else {
-                die "Wrong skip type $skiptype";
-            }
-        }
+    if ($self->_value_should_be_skipped($value, $rep_str)) {
+        # do nothing
+        return;
+    }
 
 		if (exists $value->{op}) {
             if ($value->{op} eq 'toggle' && ! $value->{target}) {
@@ -1439,7 +1430,8 @@ sub value {
         }
 	}
 
-	if ($value->{filter}) {
+	if ($value->{filter}
+        and !$self->_value_should_be_skipped($value, $raw_value)) {
 		$rep_str = $self->filter($value, $raw_value);
 	}
 	else {
@@ -1482,6 +1474,22 @@ sub _autodetect_ignores {
         die "empty string in the disabled autodetections" unless length($f);
     }
     return @ignores;
+}
+
+sub _value_should_be_skipped {
+    my ($self, $value, $replacement) = @_;
+    if (my $skiptype = $value->{skip}) {
+        if ($skiptype eq 'empty') {
+            if (!defined($replacement) or
+                $replacement =~ m/^\s*$/s) {
+                return 1;
+            }
+        }
+        else {
+            die "Unrecognized skip type $skiptype";
+        }
+    }
+    return;
 }
 
 
@@ -1704,7 +1712,7 @@ Applies filter to value.
 =item include
 
 Processes the template file named in this attribute. This implies
-the hook operation.
+the hook operation. See L</INCLUDE FILES> for more information.
 
 =back
 
