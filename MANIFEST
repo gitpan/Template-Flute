@@ -30,6 +30,7 @@ lib/Template/Flute/Expression.pm
 lib/Template/Flute/Form.pm
 lib/Template/Flute/I18N.pm
 lib/Template/Flute/Iterator.pm
+lib/Template/Flute/Iterator/Cache.pm
 lib/Template/Flute/Iterator/JSON.pm
 lib/Template/Flute/Pager.pm
 lib/Template/Flute/Paginator.pm
@@ -76,6 +77,7 @@ t/values/append.t
 t/values/bad_objects.t
 t/values/basic.t
 t/values/checkboxes.t
+t/values/input.t
 t/values/js.t
 t/values/multiple.t
 t/values/nbsp.t
@@ -107,6 +109,7 @@ t/forms/fields.t
 t/iterators/00-load.t
 t/iterators/01-simple.t
 t/iterators/20-json.t
+t/iterators/cache.t
 t/iterators/paginator.t
 t/lists/append.t
 t/lists/global-containers.t
@@ -118,6 +121,7 @@ t/lists/param-wildcards.t
 t/lists/params.t
 t/lists/placement.t
 t/lists/separator.t
+t/lists/share-iterator.t
 t/lists/toggle_param.t
 t/object.t
 t/paging/simple.t
